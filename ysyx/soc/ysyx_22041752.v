@@ -2988,7 +2988,7 @@ endmodule
 // Filename      : ysyx_22041752_io.v
 // Author        : Cw
 // Created On    : 2023-06-28 15:14
-// Last Modified : 2023-07-18 22:46
+// Last Modified : 2023-07-21 19:30
 // ---------------------------------------------------------------------------------
 // Description   : 
 //
@@ -3044,6 +3044,7 @@ always @(posedge clk) begin
         io_data_addr_r <= io_data_addr;
     end
 end
+wire flash = io_en && (io_data_addr>=`ysyx_22041752_FLASH_BASEADDR) && (io_data_addr<=`ysyx_22041752_FLASH_END);
 always @(posedge clk) begin
     if (reset) begin
         size_r <= 3'b000; //1 byte
