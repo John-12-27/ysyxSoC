@@ -67,9 +67,9 @@
     `define ysyx_22041752_MTIMECMP_OFFSET     32'h0000_4000
 
     /*`define DPI_C*/
-    /*`define REAL_MUL*/
-    /*`define REAL_DIV*/
-    /*`define REAL_DIV_MUL */
+    `define REAL_MUL
+    `define REAL_DIV
+    `define REAL_DIV_MUL 
 `endif
 
 // +FHDR----------------------------------------------------------------------------
@@ -1563,7 +1563,7 @@ endmodule
 // Filename      : ysyx_22041752_EXU.v
 // Author        : Cw
 // Created On    : 2022-11-19 16:16
-// Last Modified : 2023-07-22 12:58
+// Last Modified : 2023-07-22 18:50
 // ---------------------------------------------------------------------------------
 // Description   : 
 //
@@ -1920,7 +1920,7 @@ ysyx_22041752_alu U_ALU_0(
     .mul_calc        (es_valid&&!mul_done&&op_mul),
 `endif
 `ifdef REAL_DIV
-    .div_calc        (es_valid&&!mul_done&&(op_div||op_rem)),
+    .div_calc        (es_valid&&!div_done&&(op_div||op_rem)),
 `endif
 `endif
     .mul_u           ( mul_u          ),
@@ -2050,7 +2050,7 @@ endmodule
 // Filename      : ysyx_22041752_alu.v
 // Author        : Cw
 // Created On    : 2022-11-19 18:06
-// Last Modified : 2023-07-22 12:43
+// Last Modified : 2023-07-22 18:31
 // ---------------------------------------------------------------------------------
 // Description   : 
 //
@@ -2399,7 +2399,7 @@ endmodule
 // Filename      : ysyx_22041752_diver.v
 // Author        : Cw
 // Created On    : 2022-12-14 14:01
-// Last Modified : 2023-07-22 17:07
+// Last Modified : 2023-07-22 18:34
 // ---------------------------------------------------------------------------------
 // Description   : 
 //
@@ -2442,38 +2442,44 @@ wire [2*`ysyx_22041752_RF_DATA_WD-1:0] dividend_abs_128   = {64'b0, dividend_abs
 wire [`ysyx_22041752_RF_DATA_WD:0]     divisor_abs_65     = {1'b0, divisor_abs};
 reg  [2*`ysyx_22041752_RF_DATA_WD-1:0] result_abs_buffer  ;
 
-/*
 wire [`ysyx_22041752_RF_DATA_WD-1:0] not_p1_i_1 = out_valid ? result_abs_buffer[2*`ysyx_22041752_RF_DATA_WD-1:`ysyx_22041752_RF_DATA_WD] : dividend;
 wire [`ysyx_22041752_RF_DATA_WD-1:0] not_p1_i_2 = out_valid ? result_abs_buffer[`ysyx_22041752_RF_DATA_WD-1:0] : divisor;
-wire [`ysyx_22041752_RF_DATA_WD-1:0] not_p1_o_1;// = ~not_p1_i_1 + 1;
-wire [`ysyx_22041752_RF_DATA_WD-1:0] not_p1_o_2;// = ~not_p1_i_2 + 1;
+wire [`ysyx_22041752_RF_DATA_WD-1:0] not_p1_o_1 ;
+wire [`ysyx_22041752_RF_DATA_WD-1:0] not_p1_o_2 ;
+
+wire cout0, cout1, cout2;
+ysyx_22041752_aser #(
+    .WIDTH                          ( 64                            ))
+U_ASER_0(
+    .a                              ( 0                             ),
+    .b                              ( not_p1_i_1                    ),
+    .sub                            ( 1'b1                          ),
+    .cout                           ( cout0                         ),
+    .result                         ( not_p1_o_1                    )
+);
+ysyx_22041752_aser #(
+    .WIDTH                          ( 64                            ))
+U_ASER_1(
+    .a                              ( 0                             ),
+    .b                              ( not_p1_i_2                    ),
+    .sub                            ( 1'b1                          ),
+    .cout                           ( cout1                         ),
+    .result                         ( not_p1_o_2                    )
+);
 
 assign dividend_abs = dividend_s ? not_p1_o_1 : dividend;
 assign divisor_abs  = divisor_s  ? not_p1_o_2 : divisor;
-*/
 
-assign dividend_abs = sub_result[63:0];
-assign divisor_abs  = sub_result[63:0];
-
-wire [`ysyx_22041752_RF_DATA_WD:0] a = count==0 ? 0 : result_abs_buffer[2*`ysyx_22041752_RF_DATA_WD-1:`ysyx_22041752_RF_DATA_WD-1];
-wire [`ysyx_22041752_RF_DATA_WD:0] b = count==0 ? {1'b0, divisor}  : divisor_abs_65;
-wire                               cout      ;
-wire [`ysyx_22041752_RF_DATA_WD:0] sub_result;
+wire [`ysyx_22041752_RF_DATA_WD:0]     sub_result;
 ysyx_22041752_aser #(
-    .WIDTH                          ( 65               ))
-U_YSYX_22041752_ASER_0(
-    .a                              ( a                ),
-    .b                              ( b                ),
-    .sub                            ( 1'b1             ),
-    .cout                           ( cout             ),
-    .result                         ( sub_result       )
+    .WIDTH                          ( 65                                                                           ))
+U_ASER_2(
+    .a                              ( result_abs_buffer[2*`ysyx_22041752_RF_DATA_WD-1:`ysyx_22041752_RF_DATA_WD-1]  ),
+    .b                              ( divisor_abs_65                                                                ),
+    .sub                            ( 1'b1                                                                          ),
+    .cout                           ( cout2                                                                         ),
+    .result                         ( sub_result                                                                    )
 );
-
-//always @(posedge clk) begin
-    //if (reset) begin
-        //dividend_abs <= 0;
-    //end
-//end
 
 wire [2*`ysyx_22041752_RF_DATA_WD-1:0] update_result = {(sub_result[`ysyx_22041752_RF_DATA_WD] ? result_abs_buffer[2*`ysyx_22041752_RF_DATA_WD-2:`ysyx_22041752_RF_DATA_WD-1] : sub_result[`ysyx_22041752_RF_DATA_WD-1:0]),result_abs_buffer[`ysyx_22041752_RF_DATA_WD-2:0],(sub_result[`ysyx_22041752_RF_DATA_WD] ? 1'b0 : 1'b1)};
 
@@ -2487,7 +2493,7 @@ always @(posedge clk) begin
         result_abs_buffer <= update_result;
 end
 
-assign out_valid = div_valid && ((count == `ysyx_22041752_RF_DATA_WD+1)                                                        || 
+assign out_valid = div_valid && ((count == `ysyx_22041752_RF_DATA_WD+1)                                          || 
                    divisor == 0                                                                                  || 
                    (div_signed && (dividend == 64'h8000_0000_0000_0000) && (divisor == 64'hffff_ffff_ffff_ffff)));
 
@@ -2499,7 +2505,7 @@ always @(*) begin
         quotient = dividend;
     end
     else if (quotient_s) begin
-        quotient = sub_result[`ysyx_22041752_RF_DATA_WD-1:0];
+        quotient = not_p1_o_2;
     end
     else begin
         quotient = result_abs_buffer[`ysyx_22041752_RF_DATA_WD-1:0];
@@ -2514,7 +2520,7 @@ always @(*) begin
         remainder = 0;
     end
     else if (remainder_s) begin
-        remainder = sub_result[`ysyx_22041752_RF_DATA_WD-1:0];
+        remainder = not_p1_o_1;
     end
     else begin
         remainder = result_abs_buffer[2*`ysyx_22041752_RF_DATA_WD-1:`ysyx_22041752_RF_DATA_WD];
