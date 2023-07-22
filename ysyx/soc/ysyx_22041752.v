@@ -67,9 +67,9 @@
     `define ysyx_22041752_MTIMECMP_OFFSET     32'h0000_4000
 
     /*`define DPI_C*/
-    `define REAL_MUL
-    `define REAL_DIV
-    `define REAL_DIV_MUL 
+    /*`define REAL_MUL*/
+    /*`define REAL_DIV*/
+    /*`define REAL_DIV_MUL */
 `endif
 
 // +FHDR----------------------------------------------------------------------------
@@ -1563,7 +1563,7 @@ endmodule
 // Filename      : ysyx_22041752_EXU.v
 // Author        : Cw
 // Created On    : 2022-11-19 16:16
-// Last Modified : 2023-07-21 12:50
+// Last Modified : 2023-07-22 12:58
 // ---------------------------------------------------------------------------------
 // Description   : 
 //
@@ -1799,9 +1799,9 @@ assign expfsm_nxt = expfsm_pre == IDLE && ecall&&es_valid || int_t_o   ? W_MEPC 
                                                                          expfsm_pre;
 
 wire mul_out_valid;
-wire mul_stall = op_mul && !mul_out_valid && es_valid && !int_t_o;
+wire mul_stall = op_mul && !mul_out_valid && !mul_done && es_valid && !int_t_o;
 wire div_out_valid;                                              
-wire div_stall = op_rem|op_div && !div_out_valid && es_valid && !int_t_o;
+wire div_stall = op_rem|op_div && !div_out_valid && !div_done && es_valid && !int_t_o;
 wire fence_i_stall = fence_i && !fence_over;
 wire data_pren;
 wire cache_compete	  = write_hit && data_pren;
@@ -1886,6 +1886,29 @@ assign alu_src2 = src_csr   ? csr_rdata :
                   (op_sll || op_srl || op_sra) ? {58'b0,rs2_value[5:0]} :
                   rs2_value;
 
+reg mul_done, div_done;
+always @(posedge clk) begin
+    if (reset) begin
+        mul_done <= 0;
+    end
+    else if(mul_out_valid&&!ms_allowin) begin
+        mul_done <= 1;
+    end
+    else if(es_allowin&&ds_to_es_valid) begin
+        mul_done <= 0;
+    end
+end
+always @(posedge clk) begin
+    if (reset) begin
+        div_done <= 0;
+    end
+    else if(div_out_valid&&!ms_allowin) begin
+        div_done <= 1;
+    end
+    else if(es_allowin&&ds_to_es_valid) begin
+        div_done <= 0;
+    end
+end
 
 wire [63:0] mem_addr;
 ysyx_22041752_alu U_ALU_0(
@@ -1893,6 +1916,12 @@ ysyx_22041752_alu U_ALU_0(
     .clk             ( clk            ),
     .reset           ( reset          ),
     .flush           ( flush          ),
+`ifdef REAL_MUL
+    .mul_calc        (es_valid&&!mul_done&&op_mul),
+`endif
+`ifdef REAL_DIV
+    .div_calc        (es_valid&&!mul_done&&(op_div||op_rem)),
+`endif
 `endif
     .mul_u           ( mul_u          ),
     .mul_su          ( mul_su         ),
@@ -2021,7 +2050,7 @@ endmodule
 // Filename      : ysyx_22041752_alu.v
 // Author        : Cw
 // Created On    : 2022-11-19 18:06
-// Last Modified : 2023-07-17 18:43
+// Last Modified : 2023-07-22 12:43
 // ---------------------------------------------------------------------------------
 // Description   : 
 //
@@ -2032,6 +2061,12 @@ module ysyx_22041752_alu(
     input         clk         ,
     input         reset       , 
     input         flush       ,
+`ifdef REAL_MUL
+    input         mul_calc    ,
+`endif
+`ifdef REAL_DIV
+    input         div_calc    ,
+`endif
 `endif
     input         mul_u        ,
     input         mul_su       ,
@@ -2143,33 +2178,35 @@ assign mem_result = adder_result;
 
 ysyx_22041752_mul U_MUL_0(
 `ifdef REAL_MUL
-    .clk            ( clk        ),
-    .reset          ( reset      ),
-    .flush          ( flush      ),
+    .clk            ( clk             ),
+    .reset          ( reset           ),
+    .flush          ( flush           ),
+    .count_en       ( mul_calc        ),
 `endif
-    .mul_u          ( mul_u      ),
-    .mul_su         ( mul_su     ),
-    .mul_h          ( mul_h      ),
-    .mul_valid      ( op_mul     ),
-    .multiplicand   ( alu_src1   ),
-    .multiplier     ( alu_src2   ),
-    .product        ( mul_result ),
-    .out_valid      ( mul_out_valid)
+    .mul_u          ( mul_u           ),
+    .mul_su         ( mul_su          ),
+    .mul_h          ( mul_h           ),
+    .mul_valid      ( op_mul          ),
+    .multiplicand   ( alu_src1        ),
+    .multiplier     ( alu_src2        ),
+    .product        ( mul_result      ),
+    .out_valid      ( mul_out_valid   )
 );
 
 ysyx_22041752_diver U_DIVER_0(
 `ifdef REAL_DIV
-    .clk        ( clk        ),
-    .reset      ( reset      ),
-    .flush      ( flush      ),
+    .clk        ( clk              ),
+    .reset      ( reset            ),
+    .flush      ( flush            ),
+    .count_en   ( div_calc         ),
 `endif
-    .dividend   ( alu_src1   ),
-    .divisor    ( alu_src2   ),
-    .div_valid  ( op_div|op_rem ),
-    .div_signed (~div_u      ),
-    .out_valid  ( div_out_valid  ),
-    .quotient   ( div_result ),
-    .remainder  ( rem_result )
+    .dividend   ( alu_src1         ),
+    .divisor    ( alu_src2         ),
+    .div_valid  ( op_div|op_rem    ),
+    .div_signed (~div_u            ),
+    .out_valid  ( div_out_valid    ),
+    .quotient   ( div_result       ),
+    .remainder  ( rem_result       )
 );
 
 endmodule
@@ -2212,7 +2249,7 @@ endmodule
 // Filename      : ysyx_22041752_mul.v
 // Author        : Cw
 // Created On    : 2022-11-29 16:07
-// Last Modified : 2023-07-08 21:52
+// Last Modified : 2023-07-22 12:15
 // ---------------------------------------------------------------------------------
 // Description   : 
 //
@@ -2224,6 +2261,7 @@ module ysyx_22041752_mul(
     input                          clk           ,
     input                          reset         ,
     input                          flush         ,
+    input                          count_en      ,
 `endif
     input                          mul_u         ,
     input                          mul_su        ,
@@ -2237,12 +2275,11 @@ module ysyx_22041752_mul(
 
 `ifdef REAL_MUL
 reg [6:0] count;
-wire count_en = ~reset & ~flush & mul_valid;
 always @(posedge clk) begin
-    if (!count_en || out_valid) begin
+    if (reset || flush|| out_valid) begin
         count <= 0;
     end
-    else begin
+    else if (count_en) begin
         count <= count + 1;
     end
 end
@@ -2362,7 +2399,7 @@ endmodule
 // Filename      : ysyx_22041752_diver.v
 // Author        : Cw
 // Created On    : 2022-12-14 14:01
-// Last Modified : 2023-07-08 21:53
+// Last Modified : 2023-07-22 17:07
 // ---------------------------------------------------------------------------------
 // Description   : 
 //
@@ -2374,6 +2411,7 @@ module ysyx_22041752_diver (
     input                                       clk        ,
     input                                       reset      ,
     input                                       flush      ,
+    input                                       count_en   ,
 `endif
     input  [`ysyx_22041752_RF_DATA_WD-1:0]      dividend   ,
     input  [`ysyx_22041752_RF_DATA_WD-1:0]      divisor    ,
@@ -2386,11 +2424,10 @@ module ysyx_22041752_diver (
     
 `ifdef REAL_DIV
 reg [7:0] count;
-wire count_en = ~reset & ~flush & div_valid;
 always @(posedge clk) begin
-    if(!count_en || out_valid)
+    if(reset || flush || out_valid)
         count <= 0;
-    else
+    else if (count_en)
         count <= count + 1;
 end
 
@@ -2405,15 +2442,39 @@ wire [2*`ysyx_22041752_RF_DATA_WD-1:0] dividend_abs_128   = {64'b0, dividend_abs
 wire [`ysyx_22041752_RF_DATA_WD:0]     divisor_abs_65     = {1'b0, divisor_abs};
 reg  [2*`ysyx_22041752_RF_DATA_WD-1:0] result_abs_buffer  ;
 
+/*
 wire [`ysyx_22041752_RF_DATA_WD-1:0] not_p1_i_1 = out_valid ? result_abs_buffer[2*`ysyx_22041752_RF_DATA_WD-1:`ysyx_22041752_RF_DATA_WD] : dividend;
 wire [`ysyx_22041752_RF_DATA_WD-1:0] not_p1_i_2 = out_valid ? result_abs_buffer[`ysyx_22041752_RF_DATA_WD-1:0] : divisor;
-wire [`ysyx_22041752_RF_DATA_WD-1:0] not_p1_o_1 = ~not_p1_i_1 + 1;
-wire [`ysyx_22041752_RF_DATA_WD-1:0] not_p1_o_2 = ~not_p1_i_2 + 1;
+wire [`ysyx_22041752_RF_DATA_WD-1:0] not_p1_o_1;// = ~not_p1_i_1 + 1;
+wire [`ysyx_22041752_RF_DATA_WD-1:0] not_p1_o_2;// = ~not_p1_i_2 + 1;
 
 assign dividend_abs = dividend_s ? not_p1_o_1 : dividend;
 assign divisor_abs  = divisor_s  ? not_p1_o_2 : divisor;
+*/
 
-wire [`ysyx_22041752_RF_DATA_WD:0]     sub_result = result_abs_buffer[2*`ysyx_22041752_RF_DATA_WD-1:`ysyx_22041752_RF_DATA_WD-1] - divisor_abs_65;
+assign dividend_abs = sub_result[63:0];
+assign divisor_abs  = sub_result[63:0];
+
+wire [`ysyx_22041752_RF_DATA_WD:0] a = count==0 ? 0 : result_abs_buffer[2*`ysyx_22041752_RF_DATA_WD-1:`ysyx_22041752_RF_DATA_WD-1];
+wire [`ysyx_22041752_RF_DATA_WD:0] b = count==0 ? {1'b0, divisor}  : divisor_abs_65;
+wire                               cout      ;
+wire [`ysyx_22041752_RF_DATA_WD:0] sub_result;
+ysyx_22041752_aser #(
+    .WIDTH                          ( 65               ))
+U_YSYX_22041752_ASER_0(
+    .a                              ( a                ),
+    .b                              ( b                ),
+    .sub                            ( 1'b1             ),
+    .cout                           ( cout             ),
+    .result                         ( sub_result       )
+);
+
+//always @(posedge clk) begin
+    //if (reset) begin
+        //dividend_abs <= 0;
+    //end
+//end
+
 wire [2*`ysyx_22041752_RF_DATA_WD-1:0] update_result = {(sub_result[`ysyx_22041752_RF_DATA_WD] ? result_abs_buffer[2*`ysyx_22041752_RF_DATA_WD-2:`ysyx_22041752_RF_DATA_WD-1] : sub_result[`ysyx_22041752_RF_DATA_WD-1:0]),result_abs_buffer[`ysyx_22041752_RF_DATA_WD-2:0],(sub_result[`ysyx_22041752_RF_DATA_WD] ? 1'b0 : 1'b1)};
 
 always @(posedge clk) begin
@@ -2438,7 +2499,7 @@ always @(*) begin
         quotient = dividend;
     end
     else if (quotient_s) begin
-        quotient = not_p1_o_2;
+        quotient = sub_result[`ysyx_22041752_RF_DATA_WD-1:0];
     end
     else begin
         quotient = result_abs_buffer[`ysyx_22041752_RF_DATA_WD-1:0];
@@ -2453,7 +2514,7 @@ always @(*) begin
         remainder = 0;
     end
     else if (remainder_s) begin
-        remainder = not_p1_o_1;
+        remainder = sub_result[`ysyx_22041752_RF_DATA_WD-1:0];
     end
     else begin
         remainder = result_abs_buffer[2*`ysyx_22041752_RF_DATA_WD-1:`ysyx_22041752_RF_DATA_WD];
@@ -2988,7 +3049,7 @@ endmodule
 // Filename      : ysyx_22041752_io.v
 // Author        : Cw
 // Created On    : 2023-06-28 15:14
-// Last Modified : 2023-07-21 19:30
+// Last Modified : 2023-07-18 22:46
 // ---------------------------------------------------------------------------------
 // Description   : 
 //
@@ -3044,7 +3105,6 @@ always @(posedge clk) begin
         io_data_addr_r <= io_data_addr;
     end
 end
-wire flash = io_en && (io_data_addr>=`ysyx_22041752_FLASH_BASEADDR) && (io_data_addr<=`ysyx_22041752_FLASH_END);
 always @(posedge clk) begin
     if (reset) begin
         size_r <= 3'b000; //1 byte
