@@ -1563,7 +1563,7 @@ endmodule
 // Filename      : ysyx_22041752_EXU.v
 // Author        : Cw
 // Created On    : 2022-11-19 16:16
-// Last Modified : 2023-07-22 18:50
+// Last Modified : 2023-07-22 22:35
 // ---------------------------------------------------------------------------------
 // Description   : 
 //
@@ -1755,7 +1755,7 @@ assign es_to_ms_bus = {res_sext         ,
                        es_mem_we        ,
 					   es_rf_we         ,  
                        rd               ,  
-                       alu_result       //,  
+                       mul_done||div_done ? md_res_buf : alu_result       //,  
                        //es_pc               
                       };
 
@@ -1907,6 +1907,15 @@ always @(posedge clk) begin
     end
     else if(es_allowin&&ds_to_es_valid) begin
         div_done <= 0;
+    end
+end
+reg [`ysyx_22041752_RF_DATA_WD-1:0] md_res_buf;
+always @(posedge clk) begin
+    if (reset) begin
+        md_res_buf <= 0;
+    end
+    else if(mul_out_valid&&!ms_allowin || div_out_valid&&!ms_allowin) begin
+        md_res_buf <= alu_result;
     end
 end
 
@@ -3055,7 +3064,7 @@ endmodule
 // Filename      : ysyx_22041752_io.v
 // Author        : Cw
 // Created On    : 2023-06-28 15:14
-// Last Modified : 2023-07-18 22:46
+// Last Modified : 2023-07-22 22:31
 // ---------------------------------------------------------------------------------
 // Description   : 
 //
