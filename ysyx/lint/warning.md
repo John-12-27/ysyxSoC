@@ -101,52 +101,66 @@
 * **备注：** 无
 
 ### Warning-UNUSED
-* **描述：** ysyx_22041752.v:1890:13: Bits of signal are not used: 'mem_addr'[63:32]
+* **描述：** ysyx_22041752.v:1922:13: Bits of signal are not used: 'mem_addr'[63:32]
 * **不清理原因：** ALU计算得到的结果作为访存地址，访存总线的地址位宽只有32位，因此不使用该信号
 * **备注：** 无
 
 ### Warning-UNUSED
-* **描述：** ysyx_22041752.v:3415:19: Signal is not used: 'rresp'
+* **描述：** ysyx_22041752.v:3491:19: Signal is not used: 'rresp'
 * **不清理原因：** 仅实现了AXI接口的基础功能，因此不使用该信号
 * **备注：** 无
 
 ### Warning-UNUSED
-* **描述：** ysyx_22041752.v:3416:19: Signal is not used: 'rlast'
+* **描述：** ysyx_22041752.v:3492:19: Signal is not used: 'rlast'
 * **不清理原因：** 仅实现了AXI接口的基础功能，不支持突发传输，因此不使用该信号
 * **备注：** 无
 
 ### Warning-UNUSED
-* **描述：** ysyx_22041752.v:3434:19: Signal is not used: 'bid'
+* **描述：** ysyx_22041752.v:3510:19: Signal is not used: 'bid'
 * **不清理原因：** icache只会读RAM，不存在写入的情况，此信号返回的一定是dcache的写入应答信息，因此不使用该信号
 * **备注：** 无
 
 ### Warning-UNUSED
-* **描述：** ysyx_22041752.v:3435:19: Signal is not used: 'bresp'
+* **描述：** ysyx_22041752.v:3511:19: Signal is not used: 'bresp'
 * **不清理原因：** 仅实现了AXI接口的基础功能，因此不使用该信号
 * **备注：** 无
 
 ### Warning-UNUSED
-* **描述：** ysyx_22041752.v:2078:14: Bits of signal are not used: 'r_sra'[127:64]
+* **描述：** ysyx_22041752.v:2122:14: Bits of signal are not used: 'r_sra'[127:64]
 * **不清理原因：** 移位指令实现时丢弃的高位
 * **备注：** 无
 
 ### Warning-UNUSED
-* **描述：** ysyx_22041752.v:2672:6: Signal is not used: 'count'
+* **描述：** ysyx_22041752.v:2748:6: Signal is not used: 'count'
 * **不清理原因：** 用于计算分支/跳转指令的目标地址的加法器的进位信号输出，不使用该信号
 * **备注：** 无
 
 ### Warning-UNUSED
-* **描述：** ysyx_22041752.v:4522:16:  Bits of signal are not used: 'inst_addr_cs'[3:0] 
+* **描述：** ysyx_22041752.v:4598:16:  Bits of signal are not used: 'inst_addr_cs'[3:0] 
 * **不清理原因：** icache向RAM取指令的地址，1个cacheline的大小为16字节，不使用该信号的低4位
 * **备注：** 无
 
 ### Warning-UNUSED
-* **描述：** ysyx_22041752.v:5414:16:  Bits of signal are not used: 'data_addr_cs'[3:0] 
+* **描述：** ysyx_22041752.v:5490:16:  Bits of signal are not used: 'data_addr_cs'[3:0] 
 * **不清理原因：** dcache向RAM读数据的地址，1个cacheline的大小为16字节，不使用该信号的低4位
 * **备注：** 无
 
 ### Warning-UNUSED
-* **描述：** ysyx_22041752.v:5457:16:  Bits of signal are not used: 'replace_addr'[3:0] 
+* **描述：** ysyx_22041752.v:5533:16:  Bits of signal are not used: 'replace_addr'[3:0] 
 * **不清理原因：** dcache向RAM写入被替换数据的地址，1个cacheline的大小为16字节，不使用该信号的低4位
 * **备注：** 无
 
+### Warning-UNUSED
+* **描述：** ysyx_22041752.v:2459:6:  Signal is not used: 'cout0' 
+* **不清理原因：** 除法器中例化的加法器的进位输出信号，不使用该信号
+* **备注：** 无
+
+### Warning-UNUSED
+* **描述：** ysyx_22041752.v:2459:13:  Signal is not used: 'cout1' 
+* **不清理原因：** 除法器中例化的加法器的进位输出信号，不使用该信号
+* **备注：** 无
+
+### Warning-UNUSED
+* **描述：** ysyx_22041752.v:2459:20:  Signal is not used: 'cout2' 
+* **不清理原因：** 除法器中例化的加法器的进位输出信号，不使用该信号
+* **备注：** 无
