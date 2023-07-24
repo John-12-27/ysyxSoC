@@ -937,7 +937,7 @@ endmodule
 // Filename      : ysyx_22041752_IDU.v
 // Author        : Cw
 // Created On    : 2022-10-17 21:00
-// Last Modified : 2023-07-20 21:42
+// Last Modified : 2023-07-24 12:06
 // ---------------------------------------------------------------------------------
 // Description   : 
 //
@@ -1090,6 +1090,70 @@ wire [`ysyx_22041752_RF_DATA_WD-1:0] data_r2;
 wire [`ysyx_22041752_RF_DATA_WD-1:0] rs1_value;
 wire [`ysyx_22041752_RF_DATA_WD-1:0] rs2_value;
 
+wire inst_fence_i;
+wire inst_lui    ;
+wire inst_auipc  ;
+wire inst_lb     ;
+wire inst_lh     ;
+wire inst_lw     ;
+wire inst_lbu    ;
+wire inst_lhu    ;
+wire inst_lwu    ;
+wire inst_ld     ;
+wire inst_sb     ;
+wire inst_sh     ;
+wire inst_sw     ;
+wire inst_sd     ;
+wire inst_addi   ;
+wire inst_addiw  ;
+wire inst_slti   ;
+wire inst_sltiu  ;
+wire inst_xori   ;
+wire inst_ori    ;
+wire inst_andi   ;
+wire inst_slli   ;
+wire inst_slliw  ;
+wire inst_srli   ;
+wire inst_srliw  ;
+wire inst_srai   ;
+wire inst_sraiw  ;
+wire inst_add    ;
+wire inst_addw   ;
+wire inst_sub    ;
+wire inst_subw   ;
+wire inst_sll    ;
+wire inst_sllw   ;
+wire inst_slt    ;
+wire inst_sltu   ;
+wire inst_xor    ;
+wire inst_srl    ;
+wire inst_srlw   ;
+wire inst_sra    ;
+wire inst_sraw   ;
+wire inst_or     ;
+wire inst_and    ;
+wire inst_mul    ;
+wire inst_mulh   ;
+wire inst_mulhsu ;
+wire inst_mulhu  ;
+wire inst_mulw   ;
+wire inst_div    ;
+wire inst_divu   ;
+wire inst_divw   ;
+wire inst_divuw  ;
+wire inst_rem    ;
+wire inst_remu   ;
+wire inst_remw   ;
+wire inst_remuw  ;
+wire inst_csrrw  ;
+wire inst_csrrs  ;
+wire inst_csrrc  ;
+wire inst_csrrwi ;
+wire inst_csrrsi ;
+wire inst_csrrci ;
+wire inst_ecall  ;
+wire inst_mret   ;
+
 assign ds_to_es_bus = {inst_fence_i  ,
                        inst_ecall    ,
                        inst_mret     ,
@@ -1171,70 +1235,6 @@ always @(posedge clk) begin
         fs_to_ds_bus_r <= fs_to_ds_bus;
     end
 end
-
-wire inst_fence_i;
-wire inst_lui    ;
-wire inst_auipc  ;
-wire inst_lb     ;
-wire inst_lh     ;
-wire inst_lw     ;
-wire inst_lbu    ;
-wire inst_lhu    ;
-wire inst_lwu    ;
-wire inst_ld     ;
-wire inst_sb     ;
-wire inst_sh     ;
-wire inst_sw     ;
-wire inst_sd     ;
-wire inst_addi   ;
-wire inst_addiw  ;
-wire inst_slti   ;
-wire inst_sltiu  ;
-wire inst_xori   ;
-wire inst_ori    ;
-wire inst_andi   ;
-wire inst_slli   ;
-wire inst_slliw  ;
-wire inst_srli   ;
-wire inst_srliw  ;
-wire inst_srai   ;
-wire inst_sraiw  ;
-wire inst_add    ;
-wire inst_addw   ;
-wire inst_sub    ;
-wire inst_subw   ;
-wire inst_sll    ;
-wire inst_sllw   ;
-wire inst_slt    ;
-wire inst_sltu   ;
-wire inst_xor    ;
-wire inst_srl    ;
-wire inst_srlw   ;
-wire inst_sra    ;
-wire inst_sraw   ;
-wire inst_or     ;
-wire inst_and    ;
-wire inst_mul    ;
-wire inst_mulh   ;
-wire inst_mulhsu ;
-wire inst_mulhu  ;
-wire inst_mulw   ;
-wire inst_div    ;
-wire inst_divu   ;
-wire inst_divw   ;
-wire inst_divuw  ;
-wire inst_rem    ;
-wire inst_remu   ;
-wire inst_remw   ;
-wire inst_remuw  ;
-wire inst_csrrw  ;
-wire inst_csrrs  ;
-wire inst_csrrc  ;
-wire inst_csrrwi ;
-wire inst_csrrsi ;
-wire inst_csrrci ;
-wire inst_ecall  ;
-wire inst_mret   ;
 
 //wire inst_invalid;
 //assign inst_invalid = !(inst_lui   || 
@@ -1496,7 +1496,7 @@ endmodule
 // Filename      : ysyx_22041752_regfiles.v
 // Author        : Cw
 // Created On    : 2022-10-17 21:21
-// Last Modified : 2023-06-26 18:06
+// Last Modified : 2023-07-24 12:07
 // ---------------------------------------------------------------------------------
 // Description   : 
 //
@@ -1531,7 +1531,7 @@ end
 
 genvar i;
 generate
-    for (i = 1; i < `ysyx_22041752_RF_NUM; i++) begin
+    for (i = 1; i < `ysyx_22041752_RF_NUM; i=i+1) begin
         :Write_Regs
         always @(posedge clk) begin
             if (reset) begin
@@ -1547,7 +1547,7 @@ assign ra_data = regs[1][31:0];
 
 `ifdef DPI_C
 generate
-    for(i = 0; i < `ysyx_22041752_RF_NUM; i++) begin
+    for(i = 0; i < `ysyx_22041752_RF_NUM; i=i+1) begin
         :DPI_C_REGS
         assign dpi_regs[i] = regs[i];
     end
@@ -1563,7 +1563,7 @@ endmodule
 // Filename      : ysyx_22041752_EXU.v
 // Author        : Cw
 // Created On    : 2022-11-19 16:16
-// Last Modified : 2023-07-22 22:40
+// Last Modified : 2023-07-24 12:11
 // ---------------------------------------------------------------------------------
 // Description   : 
 //
@@ -1682,6 +1682,8 @@ wire [ 4:0] rd;
 wire [`ysyx_22041752_RF_DATA_WD-1:0]    rs1_value;
 wire [`ysyx_22041752_RF_DATA_WD-1:0]    rs2_value;
 wire [`ysyx_22041752_PC_WD     -1:0]    es_pc  ;
+reg mul_done, div_done;
+reg [`ysyx_22041752_RF_DATA_WD-1:0] md_res_buf;
 
 assign {fence_i       ,
         ecall         ,
@@ -1780,6 +1782,7 @@ ysyx_22041752_bjt_cal U_BJT_CAL_0(
     .bj_addr                        ( bj_addr                             )
 );
 
+wire        int_t_o  ;
 reg  [1:0] expfsm_pre;
 wire [1:0] expfsm_nxt;
 parameter IDLE = 0;
@@ -1829,7 +1832,6 @@ wire        csr_we   ;
 wire [11:0] csr_addr ;
 wire [63:0] csr_wdata;
 wire [63:0] csr_rdata;
-wire        int_t_o  ;
 
 wire int_allowin = es_valid && !fence_i;
 
@@ -1886,7 +1888,6 @@ assign alu_src2 = src_csr   ? csr_rdata :
                   (op_sll || op_srl || op_sra) ? {58'b0,rs2_value[5:0]} :
                   rs2_value;
 
-reg mul_done, div_done;
 always @(posedge clk) begin
     if (reset) begin
         mul_done <= 0;
@@ -1909,7 +1910,6 @@ always @(posedge clk) begin
         div_done <= 0;
     end
 end
-reg [`ysyx_22041752_RF_DATA_WD-1:0] md_res_buf;
 always @(posedge clk) begin
     if (reset) begin
         md_res_buf <= 0;
@@ -3452,7 +3452,7 @@ endmodule
 // Filename      : ysyx_22041752_axiarbiter.v
 // Author        : Cw
 // Created On    : 2023-05-27 17:57
-// Last Modified : 2023-07-18 22:39
+// Last Modified : 2023-07-24 12:15
 // ---------------------------------------------------------------------------------
 // Description   : 
 //
@@ -3513,6 +3513,10 @@ module ysyx_22041752_axiarbiter (
     output        bready  
 );
     
+reg inst_buf_split;
+reg [1:0] inst_buf_cnt;
+reg [`ysyx_22041752_DATA_DATA_WD-1:0] inst_buf;
+
 reg  [3:0] arfsm_pre;
 wire [3:0] arfsm_nxt;
 parameter AR_IDLE         = 0;
@@ -3598,7 +3602,6 @@ always @(posedge clk) begin
     end
 end
 
-reg inst_buf_split;
 always @(posedge clk) begin
     if (reset) begin
         inst_buf_split <= 0;
@@ -3610,8 +3613,6 @@ always @(posedge clk) begin
         inst_buf_split <= 0;
     end
 end
-reg [1:0] inst_buf_cnt;
-reg [`ysyx_22041752_DATA_DATA_WD-1:0] inst_buf;
 always @(posedge clk) begin
     if (reset) begin
         inst_buf_cnt <= 0;
@@ -4442,7 +4443,7 @@ endmodule
 // Filename      : ysyx_22041752_ICACHE_CMP.v
 // Author        : Cw
 // Created On    : 2023-06-17 11:07
-// Last Modified : 2023-07-17 18:48
+// Last Modified : 2023-07-24 12:16
 // ---------------------------------------------------------------------------------
 // Description   : 
 //
@@ -4512,9 +4513,6 @@ always @(posedge clk) begin
         cs_valid <= rs_to_cs_valid;
     end
 end
-
-assign cmp_allowin = !cs_valid || cs_ready_go;
-assign cs_ready_go = missfsm_pre==IDLE && !cache_miss || missfsm_pre==GET_1 || missfsm_pre==DROPED_1;
 
 reg [`ysyx_22041752_IRS_TO_ICS_BUS_WD-1:0] rs_to_cs_bus_r;
 always @(posedge clk) begin
@@ -4671,6 +4669,9 @@ assign waddr1 = index_cs[5:0];
 assign waddr2 = index_cs[5:0];
 assign waddr3 = index_cs[5:0];
 
+assign cmp_allowin = !cs_valid || cs_ready_go;
+assign cs_ready_go = missfsm_pre==IDLE && !cache_miss || missfsm_pre==GET_1 || missfsm_pre==DROPED_1;
+
 endmodule
 
 // +FHDR----------------------------------------------------------------------------
@@ -4680,7 +4681,7 @@ endmodule
 // Filename      : ysyx_22041752_ICACHE_TAG.v
 // Author        : Cw
 // Created On    : 2023-07-17 17:09
-// Last Modified : 2023-07-20 21:20
+// Last Modified : 2023-07-24 12:18
 // ---------------------------------------------------------------------------------
 // Description   : 
 //
@@ -4701,7 +4702,7 @@ reg [`ysyx_22041752_ICACHE_TAG_WD-1:0] tag [63:0];
 
 genvar i;
 generate
-    for (i = 0; i < 64; i++) begin
+    for (i = 0; i < 64; i=i+1) begin
         :Write_Regs
         always @(posedge clk) begin
             if (reset) begin
@@ -4730,7 +4731,7 @@ endmodule
 // Filename      : ysyx_22041752_ICACHE_V.v
 // Author        : Cw
 // Created On    : 2023-06-17 16:46
-// Last Modified : 2023-06-29 10:37
+// Last Modified : 2023-07-24 12:17
 // ---------------------------------------------------------------------------------
 // Description   : valid table for cache
 //
@@ -4751,7 +4752,7 @@ reg [63:0] valid;
 
 genvar i;
 generate
-    for (i = 0; i < 64; i++) begin
+    for (i = 0; i < 64; i=i+1) begin
         :Write_Regs
         always @(posedge clk) begin
             if (reset) begin
@@ -5208,7 +5209,7 @@ endmodule
 // Filename      : ysyx_22041752_DCACHE_CMP.v
 // Author        : Cw
 // Created On    : 2023-06-17 11:07
-// Last Modified : 2023-07-17 18:47
+// Last Modified : 2023-07-24 12:20
 // ---------------------------------------------------------------------------------
 // Description   : 
 //
@@ -5285,10 +5286,6 @@ always @(posedge clk) begin
         cs_valid <= rs_to_cs_valid;
     end
 end
-
-assign cmp_allowin = !cs_valid || cs_ready_go;
-assign cs_ready_go = missfsm_pre==IDLE && !cache_miss   && !fence_to_mem || missfsm_pre==READ_DONE_1 ||
-                     fencefsm_pre==IDLE&& !fence_to_mem && !cache_miss   || fencefsm_pre==WAY3_DONE1;
 
 reg [`ysyx_22041752_DRS_TO_DCS_BUS_WD-1:0] rs_to_cs_bus_r;
 always @(posedge clk) begin
@@ -5667,6 +5664,10 @@ assign waddr1 = index_cs;
 assign waddr2 = index_cs;
 assign waddr3 = index_cs;
 
+assign cmp_allowin = !cs_valid || cs_ready_go;
+assign cs_ready_go = missfsm_pre==IDLE && !cache_miss   && !fence_to_mem || missfsm_pre==READ_DONE_1 ||
+                     fencefsm_pre==IDLE&& !fence_to_mem && !cache_miss   || fencefsm_pre==WAY3_DONE1;
+
 endmodule
 
 // +FHDR----------------------------------------------------------------------------
@@ -5676,7 +5677,7 @@ endmodule
 // Filename      : ysyx_22041752_DCACHE_TAG.v
 // Author        : Cw
 // Created On    : 2023-07-17 17:09
-// Last Modified : 2023-07-20 21:25
+// Last Modified : 2023-07-24 12:18
 // ---------------------------------------------------------------------------------
 // Description   : 
 //
@@ -5697,7 +5698,7 @@ reg [`ysyx_22041752_DCACHE_TAG_WD-1:0] tag [63:0];
 
 genvar i;
 generate
-    for (i = 0; i < 64; i++) begin
+    for (i = 0; i < 64; i=i+1) begin
         :Write_Regs
         always @(posedge clk) begin
             if (reset) begin
@@ -5726,7 +5727,7 @@ endmodule
 // Filename      : ysyx_22041752_DCACHE_VD.v
 // Author        : Cw
 // Created On    : 2023-06-17 16:46
-// Last Modified : 2023-06-29 10:37
+// Last Modified : 2023-07-24 12:18
 // ---------------------------------------------------------------------------------
 // Description   : valid/dirty table for cache
 //
@@ -5747,7 +5748,7 @@ reg [63:0] dat;
 
 genvar i;
 generate
-    for (i = 0; i < 64; i++) begin
+    for (i = 0; i < 64; i=i+1) begin
         :Write_Regs
         always @(posedge clk) begin
             if (reset) begin
