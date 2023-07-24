@@ -4524,6 +4524,22 @@ always @(posedge clk) begin
     end
 end
 
+reg  [3:0] missfsm_pre;
+wire [3:0] missfsm_nxt;
+parameter IDLE         =0;
+parameter REQUEST_0    =1;
+parameter RESPONSE_0   =2;
+parameter GET_0        =3;
+parameter DROP_REQ_0   =4;
+parameter DROP_RESP_0  =5;
+parameter DROPED_0     =6;
+parameter REQUEST_1    =7;
+parameter RESPONSE_1   =8;
+parameter GET_1        =9;
+parameter DROP_REQ_1   =10;
+parameter DROP_RESP_1  =11;
+parameter DROPED_1     =12;
+
 wire [`ysyx_22041752_ICACHE_OFFSET_WD-1:0] offset_cs;
 wire [`ysyx_22041752_ICACHE_TAG_WD   -1:0] tag_cs   ;
 wire [`ysyx_22041752_ICACHE_INDEX_WD -1:0] index_cs ;
@@ -4541,24 +4557,6 @@ wire [127:0] hit_line = hit_w0 ? rden_cs[0] ? data0 : data1 :
 
 
 assign cache_miss = |rden_cs && cs_valid && !(hit_w0 || hit_w1 || missfsm_pre==GET_1);
-
-reg  [3:0] missfsm_pre;
-wire [3:0] missfsm_nxt;
-parameter IDLE         =0;
-
-parameter REQUEST_0    =1;
-parameter RESPONSE_0   =2;
-parameter GET_0        =3;
-parameter DROP_REQ_0   =4;
-parameter DROP_RESP_0  =5;
-parameter DROPED_0     =6;
-
-parameter REQUEST_1    =7;
-parameter RESPONSE_1   =8;
-parameter GET_1        =9;
-parameter DROP_REQ_1   =10;
-parameter DROP_RESP_1  =11;
-parameter DROPED_1     =12;
 
 always @(posedge clk) begin
     if (reset) begin
