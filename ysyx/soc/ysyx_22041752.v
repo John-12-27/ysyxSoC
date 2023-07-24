@@ -729,6 +729,38 @@ endmodule
 //                 Copyright (c) 2022 
 //                       ALL RIGHTS RESERVED
 // ---------------------------------------------------------------------------------
+// Filename      : ysyx_22041752_aser.v
+// Author        : Cw
+// Created On    : 2022-08-24 09:46
+// Last Modified : 2023-06-03 20:30
+// ---------------------------------------------------------------------------------
+// Description   : 64-bit adder_suber 
+//
+//
+// -FHDR----------------------------------------------------------------------------
+module ysyx_22041752_aser #( 
+    parameter WIDTH = 64   )
+(
+    input  [WIDTH-1:0] a        ,
+    input  [WIDTH-1:0] b        ,
+    input              sub      ,
+    output             cout     ,
+    output [WIDTH-1:0] result   
+);
+
+wire [WIDTH-1:0] x  ;
+wire [WIDTH-1:0] y  ;
+
+assign x = a;
+assign y = sub ? ~b : b;
+assign {cout, result} = x + y + {{WIDTH{1'b0}}, sub};
+
+endmodule
+
+// +FHDR----------------------------------------------------------------------------
+//                 Copyright (c) 2022 
+//                       ALL RIGHTS RESERVED
+// ---------------------------------------------------------------------------------
 // Filename      : ysyx_22041752_IFU.v
 // Author        : Cw
 // Created On    : 2022-10-17 20:50
@@ -2219,38 +2251,6 @@ ysyx_22041752_diver U_DIVER_0(
 );
 
 endmodule
-// +FHDR----------------------------------------------------------------------------
-//                 Copyright (c) 2022 
-//                       ALL RIGHTS RESERVED
-// ---------------------------------------------------------------------------------
-// Filename      : ysyx_22041752_aser.v
-// Author        : Cw
-// Created On    : 2022-08-24 09:46
-// Last Modified : 2023-06-03 20:30
-// ---------------------------------------------------------------------------------
-// Description   : 64-bit adder_suber 
-//
-//
-// -FHDR----------------------------------------------------------------------------
-module ysyx_22041752_aser #( 
-    parameter WIDTH = 64   )
-(
-    input  [WIDTH-1:0] a        ,
-    input  [WIDTH-1:0] b        ,
-    input              sub      ,
-    output             cout     ,
-    output [WIDTH-1:0] result   
-);
-
-wire [WIDTH-1:0] x  ;
-wire [WIDTH-1:0] y  ;
-
-assign x = a;
-assign y = sub ? ~b : b;
-assign {cout, result} = x + y + {{WIDTH{1'b0}}, sub};
-
-endmodule
-
 // +FHDR----------------------------------------------------------------------------
 //                 Copyright (c) 2022 
 //                       ALL RIGHTS RESERVED
@@ -4524,22 +4524,6 @@ always @(posedge clk) begin
     end
 end
 
-reg  [3:0] missfsm_pre;
-wire [3:0] missfsm_nxt;
-parameter IDLE         =0;
-parameter REQUEST_0    =1;
-parameter RESPONSE_0   =2;
-parameter GET_0        =3;
-parameter DROP_REQ_0   =4;
-parameter DROP_RESP_0  =5;
-parameter DROPED_0     =6;
-parameter REQUEST_1    =7;
-parameter RESPONSE_1   =8;
-parameter GET_1        =9;
-parameter DROP_REQ_1   =10;
-parameter DROP_RESP_1  =11;
-parameter DROPED_1     =12;
-
 wire [`ysyx_22041752_ICACHE_OFFSET_WD-1:0] offset_cs;
 wire [`ysyx_22041752_ICACHE_TAG_WD   -1:0] tag_cs   ;
 wire [`ysyx_22041752_ICACHE_INDEX_WD -1:0] index_cs ;
@@ -4557,6 +4541,24 @@ wire [127:0] hit_line = hit_w0 ? rden_cs[0] ? data0 : data1 :
 
 
 assign cache_miss = |rden_cs && cs_valid && !(hit_w0 || hit_w1 || missfsm_pre==GET_1);
+
+reg  [3:0] missfsm_pre;
+wire [3:0] missfsm_nxt;
+parameter IDLE         =0;
+
+parameter REQUEST_0    =1;
+parameter RESPONSE_0   =2;
+parameter GET_0        =3;
+parameter DROP_REQ_0   =4;
+parameter DROP_RESP_0  =5;
+parameter DROPED_0     =6;
+
+parameter REQUEST_1    =7;
+parameter RESPONSE_1   =8;
+parameter GET_1        =9;
+parameter DROP_REQ_1   =10;
+parameter DROP_RESP_1  =11;
+parameter DROPED_1     =12;
 
 always @(posedge clk) begin
     if (reset) begin
