@@ -5209,7 +5209,7 @@ endmodule
 // Filename      : ysyx_22041752_DCACHE_CMP.v
 // Author        : Cw
 // Created On    : 2023-06-17 11:07
-// Last Modified : 2023-07-24 12:20
+// Last Modified : 2023-07-24 12:25
 // ---------------------------------------------------------------------------------
 // Description   : 
 //
@@ -5297,6 +5297,23 @@ always @(posedge clk) begin
     end
 end
 
+reg  [3:0] missfsm_pre;
+wire [3:0] missfsm_nxt;
+parameter IDLE         = 0;
+parameter MISS         = 1; 
+parameter WRITE_REQ_0  = 2;
+parameter WRITE_RESP_0 = 3;
+parameter WRITE_DONE_0 = 4;
+parameter WRITE_REQ_1  = 5;
+parameter WRITE_RESP_1 = 6;
+parameter WRITE_DONE_1 = 7;
+parameter READ_REQ_0   = 8;
+parameter READ_RESP_0  = 9;
+parameter READ_DONE_0  =10;
+parameter READ_REQ_1   =11;
+parameter READ_RESP_1  =12;
+parameter READ_DONE_1  =13;
+
 wire [`ysyx_22041752_ICACHE_OFFSET_WD-1:0] offset_cs    ;
 wire [`ysyx_22041752_DCACHE_TAG_WD   -1:0] tag_cs       ;
 wire [`ysyx_22041752_DCACHE_INDEX_WD -1:0] index_cs     ;
@@ -5323,24 +5340,6 @@ assign cache_miss = !fence_to_mem && |rden_cs && cs_valid && !(hit_w0 || hit_w1 
 wire   miss_write = cache_miss &&|data_wen;
 wire   miss_read  = cache_miss &&!miss_write;
 
-reg  [3:0] missfsm_pre;
-wire [3:0] missfsm_nxt;
-parameter IDLE         = 0;
-
-parameter MISS         = 1; 
-parameter WRITE_REQ_0  = 2;
-parameter WRITE_RESP_0 = 3;
-parameter WRITE_DONE_0 = 4;
-parameter WRITE_REQ_1  = 5;
-parameter WRITE_RESP_1 = 6;
-parameter WRITE_DONE_1 = 7;
-
-parameter READ_REQ_0   = 8;
-parameter READ_RESP_0  = 9;
-parameter READ_DONE_0  =10;
-parameter READ_REQ_1   =11;
-parameter READ_RESP_1  =12;
-parameter READ_DONE_1  =13;
 
 always @(posedge clk) begin
     if (reset) begin
@@ -5402,8 +5401,6 @@ assign missfsm_nxt =(missfsm_pre==IDLE||missfsm_pre==READ_DONE_1) &&  cache_miss
                      missfsm_pre==READ_RESP_1                     &&  sram_valid     ? READ_DONE_1  :
                      missfsm_pre==READ_DONE_1                                        ? IDLE         :
                                                                                        missfsm_pre  ;
-
-
 
 parameter PRE_FENCE  = 1; 
 parameter WAY0_REQ0  = 2;
