@@ -96,12 +96,12 @@
 * **备注：** 无
 
 ### Warning-UNUSED
-* **描述：** ysyx_22041752.v:918:6: Signal is not used: 'count'
+* **描述：** ysyx_22041752.v:950:6: Signal is not used: 'count'
 * **不清理原因：** 用于计算取指地址加法器的进位信号输出，不使用该信号
 * **备注：** 无
 
 ### Warning-UNUSED
-* **描述：** ysyx_22041752.v:1922:13: Bits of signal are not used: 'mem_addr'[63:32]
+* **描述：** ysyx_22041752.v:1954:13: Bits of signal are not used: 'mem_addr'[63:32]
 * **不清理原因：** ALU计算得到的结果作为访存地址，访存总线的地址位宽只有32位，因此不使用该信号
 * **备注：** 无
 
@@ -126,7 +126,7 @@
 * **备注：** 无
 
 ### Warning-UNUSED
-* **描述：** ysyx_22041752.v:2122:14: Bits of signal are not used: 'r_sra'[127:64]
+* **描述：** ysyx_22041752.v:2154:14: Bits of signal are not used: 'r_sra'[127:64]
 * **不清理原因：** 移位指令实现时丢弃的高位
 * **备注：** 无
 
@@ -136,17 +136,17 @@
 * **备注：** 无
 
 ### Warning-UNUSED
-* **描述：** ysyx_22041752.v:4598:16:  Bits of signal are not used: 'inst_addr_cs'[3:0] 
+* **描述：** ysyx_22041752.v:4596:16:  Bits of signal are not used: 'inst_addr_cs'[3:0] 
 * **不清理原因：** icache向RAM取指令的地址，1个cacheline的大小为16字节，不使用该信号的低4位
 * **备注：** 无
 
 ### Warning-UNUSED
-* **描述：** ysyx_22041752.v:5490:16:  Bits of signal are not used: 'data_addr_cs'[3:0] 
+* **描述：** ysyx_22041752.v:5484:16:  Bits of signal are not used: 'data_addr_cs'[3:0] 
 * **不清理原因：** dcache向RAM读数据的地址，1个cacheline的大小为16字节，不使用该信号的低4位
 * **备注：** 无
 
 ### Warning-UNUSED
-* **描述：** ysyx_22041752.v:5533:16:  Bits of signal are not used: 'replace_addr'[3:0] 
+* **描述：** ysyx_22041752.v:5527:16:  Bits of signal are not used: 'replace_addr'[3:0] 
 * **不清理原因：** dcache向RAM写入被替换数据的地址，1个cacheline的大小为16字节，不使用该信号的低4位
 * **备注：** 无
 
