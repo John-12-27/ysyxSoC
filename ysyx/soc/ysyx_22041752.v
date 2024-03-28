@@ -62,668 +62,43 @@
     `define ysyx_22041752_UART_END            32'h1000_0fff
     `define ysyx_22041752_SPI_BASEADDR        32'h1000_1000
     `define ysyx_22041752_SPI_END             32'h1000_1fff
+    `define ysyx_22041752_SDRAM_BASEADDR      32'hfc00_0000
+    `define ysyx_22041752_SDRAM_END           32'hffff_ffff
     `define ysyx_22041752_CLINT_BASE_ADDR     32'h0200_0000
     `define ysyx_22041752_MTIME_OFFSET        32'h0000_bff8
     `define ysyx_22041752_MTIMECMP_OFFSET     32'h0000_4000
 
+    /*`define R_OUTSTANDING*/
     /*`define DPI_C*/
     `define REAL_MUL
+    `define FAST_MUL
+    `define SPLIT 16
     `define REAL_DIV
     `define REAL_DIV_MUL 
 `endif
 
 // +FHDR----------------------------------------------------------------------------
-//                 Copyright (c) 2022 
+//                 Copyright (c) 2024 
 //                       ALL RIGHTS RESERVED
 // ---------------------------------------------------------------------------------
-// Filename      : ysyx_22041752.v
+// Filename      : ysyx_22041752_fadder_1b.v
 // Author        : Cw
-// Created On    : 2022-10-17 21:44
-// Last Modified : 2023-07-18 21:09
+// Created On    : 2024-03-20 16:26
+// Last Modified : 2024-03-27 18:26
 // ---------------------------------------------------------------------------------
 // Description   : 
 //
 //
 // -FHDR----------------------------------------------------------------------------
-module ysyx_22041752(
-    input         clock,
-    input         reset,
-
-    input          io_interrupt     ,
-    output         io_slave_awready ,
-    input          io_slave_awvalid ,
-    input  [3:0]   io_slave_awid    ,
-    input  [31:0]  io_slave_awaddr  ,
-    input  [7:0]   io_slave_awlen   ,
-    input  [2:0]   io_slave_awsize  ,
-    input  [1:0]   io_slave_awburst ,
-    output         io_slave_wready  ,
-    input          io_slave_wvalid  ,
-    input  [63:0]  io_slave_wdata   ,
-    input  [7:0]   io_slave_wstrb   ,
-    input          io_slave_wlast   ,
-    input          io_slave_bready  ,
-    output         io_slave_bvalid  ,
-    output [3:0]   io_slave_bid     ,
-    output [1:0]   io_slave_bresp   ,
-    output         io_slave_arready ,
-    input          io_slave_arvalid ,
-    input  [3:0]   io_slave_arid    ,
-    input  [31:0]  io_slave_araddr  ,
-    input  [7:0]   io_slave_arlen   ,
-    input  [2:0]   io_slave_arsize  ,
-    input  [1:0]   io_slave_arburst ,
-    input          io_slave_rready  ,
-    output         io_slave_rvalid  ,
-    output [3:0]   io_slave_rid     ,
-    output [63:0]  io_slave_rdata   ,
-    output [1:0]   io_slave_rresp   ,
-    output         io_slave_rlast   ,
-
-    input          io_master_awready ,
-    output         io_master_awvalid ,
-    output [3:0]   io_master_awid    ,
-    output [31:0]  io_master_awaddr  ,
-    output [7:0]   io_master_awlen   ,
-    output [2:0]   io_master_awsize  ,
-    output [1:0]   io_master_awburst ,
-    input          io_master_wready  ,
-    output         io_master_wvalid  ,
-    output [63:0]  io_master_wdata   ,
-    output [7:0]   io_master_wstrb   ,
-    output         io_master_wlast   ,
-    output         io_master_bready  ,
-    input          io_master_bvalid  ,
-    input  [3:0]   io_master_bid     ,
-    input  [1:0]   io_master_bresp   ,
-    input          io_master_arready ,
-    output         io_master_arvalid ,
-    output [3:0]   io_master_arid    ,
-    output [31:0]  io_master_araddr  ,
-    output [7:0]   io_master_arlen   ,
-    output [2:0]   io_master_arsize  ,
-    output [1:0]   io_master_arburst ,
-    output         io_master_rready  ,
-    input          io_master_rvalid  ,
-    input  [3:0]   io_master_rid     ,
-    input  [63:0]  io_master_rdata   ,
-    input  [1:0]   io_master_rresp   ,
-    input          io_master_rlast   ,
-
-    output [5:0]   io_sram0_addr     ,
-    output         io_sram0_cen      ,
-    output         io_sram0_wen      ,
-    output [127:0] io_sram0_wmask    ,
-    output [127:0] io_sram0_wdata    ,
-    input  [127:0] io_sram0_rdata    ,
-    output [5:0]   io_sram1_addr     ,
-    output         io_sram1_cen      ,
-    output         io_sram1_wen      ,
-    output [127:0] io_sram1_wmask    ,
-    output [127:0] io_sram1_wdata    ,
-    input  [127:0] io_sram1_rdata    ,
-    output [5:0]   io_sram2_addr     ,
-    output         io_sram2_cen      ,
-    output         io_sram2_wen      ,
-    output [127:0] io_sram2_wmask    ,
-    output [127:0] io_sram2_wdata    ,
-    input  [127:0] io_sram2_rdata    ,
-    output [5:0]   io_sram3_addr     ,
-    output         io_sram3_cen      ,
-    output         io_sram3_wen      ,
-    output [127:0] io_sram3_wmask    ,
-    output [127:0] io_sram3_wdata    ,
-    input  [127:0] io_sram3_rdata    ,
-    output [5:0]   io_sram4_addr     ,
-    output         io_sram4_cen      ,
-    output         io_sram4_wen      ,
-    output [127:0] io_sram4_wmask    ,
-    output [127:0] io_sram4_wdata    ,
-    input  [127:0] io_sram4_rdata    ,
-    output [5:0]   io_sram5_addr     ,
-    output         io_sram5_cen      ,
-    output         io_sram5_wen      ,
-    output [127:0] io_sram5_wmask    ,
-    output [127:0] io_sram5_wdata    ,
-    input  [127:0] io_sram5_rdata    ,
-    output [5:0]   io_sram6_addr     ,
-    output         io_sram6_cen      ,
-    output         io_sram6_wen      ,
-    output [127:0] io_sram6_wmask    ,
-    output [127:0] io_sram6_wdata    ,
-    input  [127:0] io_sram6_rdata    ,
-    output [5:0]   io_sram7_addr     ,
-    output         io_sram7_cen      ,
-    output         io_sram7_wen      ,
-    output [127:0] io_sram7_wmask    ,
-    output [127:0] io_sram7_wdata    ,
-    input  [127:0] io_sram7_rdata    
+module ysyx_22041752_fadder_1b (
+    input  a   ,
+    input  b   , 
+    input  cin ,
+    output cout,
+    output sum
 );
-
-assign io_slave_awready= 0; 
-assign io_slave_wready = 0;
-assign io_slave_bvalid = 0;   
-assign io_slave_bid    = 0; 
-assign io_slave_bresp  = 0; 
-assign io_slave_arready= 0; 
-assign io_slave_rvalid = 0; 
-assign io_slave_rid    = 0; 
-assign io_slave_rdata  = 0; 
-assign io_slave_rresp  = 0; 
-assign io_slave_rlast  = 0; 
-
-wire         int_t;
-wire         fence_i;
-wire         fence_over;
-wire         flush;
-wire         flush_pc_p4;
-wire         pre_error;       
-wire [`ysyx_22041752_PC_WD-1:0] flush_pc  ;
-
-wire         ds_allowin;
-wire         es_allowin;
-wire         ms_allowin;
-wire         ws_allowin;
-wire         fs_to_ds_valid;
-wire         ds_to_es_valid;
-wire         es_to_ms_valid;
-wire         ms_to_ws_valid;
-wire [`ysyx_22041752_FS_TO_DS_BUS_WD -1:0]   fs_to_ds_bus;
-wire [`ysyx_22041752_DS_TO_ES_BUS_WD -1:0]   ds_to_es_bus;
-wire [`ysyx_22041752_ES_TO_MS_BUS_WD -1:0]   es_to_ms_bus;
-wire [`ysyx_22041752_MS_TO_WS_BUS_WD -1:0]   ms_to_ws_bus;
-wire [`ysyx_22041752_WS_TO_RF_BUS_WD -1:0]   ws_to_rf_bus;
-wire [`ysyx_22041752_PC_WD           -1:0]   ra_data     ;
-wire [`ysyx_22041752_FORWARD_BUS_WD -1:0]    es_forward_bus;
-wire [`ysyx_22041752_FORWARD_BUS_WD-1:0]     ms_forward_bus;
-wire [`ysyx_22041752_WS_FORWARD_BUS_WD -1:0] ws_forward_bus;
-
-`ifdef DPI_C
-// trace debug interface
-wire [`ysyx_22041752_PC_WD       -1:0] debug_wb_pc      ;
-wire [`ysyx_22041752_PC_WD       -1:0] debug_es_pc      ;
-wire                                   debug_es_bjpre_error; 
-wire                                   debug_es_bj_inst ; 
-wire                                   debug_es_exp     ;
-wire                                   debug_es_mret    ;
-wire                                   debug_es_data_ren;
-wire                                   debug_es_data_wen;
-wire [`ysyx_22041752_DATA_ADDR_WD-1:0] debug_es_data_addr;
-wire [`ysyx_22041752_DATA_DATA_WD-1:0] debug_es_data_wdata;
-wire                                   debug_ws_valid   ;
-wire [`ysyx_22041752_INST_WD     -1:0] debug_ds_inst    ;
-wire [`ysyx_22041752_INST_WD     -1:0] debug_es_inst    ;
-wire [`ysyx_22041752_INST_WD     -1:0] debug_ms_inst    ;
-wire [`ysyx_22041752_DATA_DATA_WD-1:0] debug_ms_data_rdata;
-wire                                   debug_ms_rdata_valid;
-wire [`ysyx_22041752_INST_WD     -1:0] debug_ws_inst    ;
-wire                                   debug_es_out_of_mem;
-wire                                   debug_ms_out_of_mem;
-wire                                   debug_ws_out_of_mem;
-wire [`ysyx_22041752_RF_DATA_WD  -1:0] dpi_regs [`ysyx_22041752_RF_NUM-1:0];
-wire [`ysyx_22041752_RF_DATA_WD  -1:0] dpi_csrs [3:0];
-wire [                            0:0] stop;
-wire                                   debug_icache_miss;
-wire                                   debug_dcache_miss;
-wire                                   debug_dcache_en;
-`endif
-
-wire clk = clock;
-
-// fetch insts interface
-wire                                   inst_en   ;
-wire [`ysyx_22041752_DATA_ADDR_WD-1:0] inst_addr ;
-wire [`ysyx_22041752_INST_WD-1:0]      inst_rdata;
-wire                                   icache_miss;
-// ld/store interface
-wire                                   es_data_en    ;
-wire [`ysyx_22041752_DATA_WEN_WD -1:0] es_data_wen   ;
-wire [`ysyx_22041752_DATA_ADDR_WD-1:0] es_data_addr  ;
-wire [`ysyx_22041752_DATA_DATA_WD-1:0] es_data_wdata ;
-wire [`ysyx_22041752_DATA_DATA_WD-1:0] ms_data_rdata ;
-wire                                   ms_miss       ;
-wire                                   es_write_hit  ;
-
-// IF stage
-ysyx_22041752_IFU U_IFU_0(
-    .clk            (clk            ),
-    .reset          (reset          ),
-    //allowin
-    .ds_allowin     (ds_allowin     ),
-    //outputs
-    .fs_to_ds_valid (fs_to_ds_valid ),
-    .fs_to_ds_bus   (fs_to_ds_bus   ),
-
-    .inst_en        (inst_en        ),
-    .inst_addr      (inst_addr      ),
-    .inst_rdata     (inst_rdata     ),
-    .cache_miss     (icache_miss    ) ,
-
-    .ra_data        (ra_data        ),
-    .flush          (flush|pre_error|fence_over),
-    .flush_pc_p4    (flush_pc_p4    ),
-    .flush_pc       (flush_pc       )
-
-`ifdef DPI_C
-    ,
-    .debug_icache_miss (debug_icache_miss)
-`endif
-);
-
-// ID stage
-ysyx_22041752_IDU U_IDU_0(
-    .clk            ( clk            ),
-    .reset          ( reset          ),
-    .es_allowin     ( es_allowin     ),
-    .ds_allowin     ( ds_allowin     ),
-    .fs_to_ds_valid ( fs_to_ds_valid ),
-    .fs_to_ds_bus   ( fs_to_ds_bus   ),
-    .ds_to_es_valid ( ds_to_es_valid ),
-    .ds_to_es_bus   ( ds_to_es_bus   ),
-    .ws_to_rf_bus   ( ws_to_rf_bus   ),
-    .es_forward_bus ( es_forward_bus ),
-    .ms_forward_bus ( ms_forward_bus ),
-    .ws_forward_bus ( ws_forward_bus ),
-    .ra_data        ( ra_data        ),
-    .flush          ( flush|pre_error|fence_over)
-`ifdef DPI_C
-    ,
-    .dpi_regs       ( dpi_regs       ),
-    .stop           ( stop           ),
-    .debug_ds_inst  ( debug_ds_inst  )
-`endif
-);
-
-// EXE stage
-ysyx_22041752_EXU U_EXU_0(
-    .clk            ( clk             ),
-    .reset          ( reset           ),
-    .ms_allowin     ( ms_allowin      ),
-    .es_allowin     ( es_allowin      ),
-    .ds_to_es_valid ( ds_to_es_valid  ),
-    .ds_to_es_bus   ( ds_to_es_bus    ),
-    .es_to_ms_valid ( es_to_ms_valid  ),
-    .es_to_ms_bus   ( es_to_ms_bus    ),
-    .es_forward_bus ( es_forward_bus  ),
-    .data_en        ( es_data_en      ),
-    .data_wen       ( es_data_wen     ),
-    .data_addr      ( es_data_addr    ),
-    .data_wdata     ( es_data_wdata   ),
-    .write_hit      ( es_write_hit    ),
-    .fence_i_o      ( fence_i         ),
-    .fence_over     ( fence_over      ),
-    .flush          ( flush           ),
-    .flush_pc       ( flush_pc        ),
-    .int_t_i        ( int_t           ),
-    .flush_pc_p4    ( flush_pc_p4     ),
-    .bjpre_error    ( pre_error       )
-`ifdef DPI_C
-    ,
-    .debug_es_bjpre_error(debug_es_bjpre_error),
-    .dpi_csrs            ( dpi_csrs        ),
-    .es_exp              ( debug_es_exp    ),
-    .es_mret             ( debug_es_mret   ),
-    .debug_es_bj_inst    ( debug_es_bj_inst),
-    .debug_es_data_addr  ( debug_es_data_addr),
-    .debug_es_out_of_mem ( debug_es_out_of_mem),
-    .debug_es_data_ren   ( debug_es_data_ren),
-    .debug_es_data_wen   ( debug_es_data_wen),
-    .debug_es_data_wdata ( debug_es_data_wdata),
-    .debug_es_pc         ( debug_es_pc     ),
-    .debug_ds_inst       ( debug_ds_inst   ),
-    .debug_es_inst       ( debug_es_inst   )
-`endif
-);
-
-// MEM stage
-ysyx_22041752_MEU U_MEU_0(
-    .clk            ( clk             ),
-    .reset          ( reset           ),
-    .ws_allowin     ( ws_allowin      ),
-    .ms_allowin     ( ms_allowin      ),
-    .es_to_ms_valid ( es_to_ms_valid  ),
-    .es_to_ms_bus   ( es_to_ms_bus    ),
-    .ms_to_ws_valid ( ms_to_ws_valid  ),
-    .ms_to_ws_bus   ( ms_to_ws_bus    ),
-    .data_rdata     ( ms_data_rdata   ),
-    .cache_miss     ( ms_miss         ),
-    .ms_forward_bus ( ms_forward_bus  )
-`ifdef DPI_C
-    ,
-    .debug_es_inst  ( debug_es_inst   ),
-    .debug_ms_inst  ( debug_ms_inst   ),
-    .debug_ms_data_rdata    (debug_ms_data_rdata),
-    .debug_es_out_of_mem    (debug_es_out_of_mem),
-    .debug_ms_out_of_mem    (debug_ms_out_of_mem),
-    .debug_cache_miss       (debug_dcache_miss  ),
-    .debug_ms_rdata_valid   (debug_ms_rdata_valid)
-`endif
-);
-
-// WB stage
-ysyx_22041752_WBU U_WBU_0(
-    .clk                    ( clk               ),
-    .reset                  ( reset             ),
-    .ws_allowin             ( ws_allowin        ),
-    .ms_to_ws_valid         ( ms_to_ws_valid    ),
-    .ms_to_ws_bus           ( ms_to_ws_bus      ),
-    .ws_to_rf_bus           ( ws_to_rf_bus      ),
-    .ws_forward_bus         ( ws_forward_bus    )
-`ifdef DPI_C
-    ,
-    .debug_ws_valid         ( debug_ws_valid    ),
-    .debug_ms_inst          ( debug_ms_inst     ),
-    .debug_ms_out_of_mem    (debug_ms_out_of_mem),
-    .debug_ws_inst          ( debug_ws_inst     ),
-    .debug_ws_out_of_mem    (debug_ws_out_of_mem),
-    .debug_wb_pc	        ( debug_wb_pc	    )
-`endif
-);
-
-wire                                   icache_req       ;
-wire [`ysyx_22041752_DATA_ADDR_WD-1:0] icache_req_addr  ;
-wire                                   icache_ready     ;
-wire                                   icache_valid     ;
-wire [`ysyx_22041752_DATA_DATA_WD-1:0] icache_rdata     ;
-ysyx_22041752_ICACHE U_ICACHE_0(
-    .clk                            ( clk                       ),
-    .reset                          ( reset                     ),
-    .flush                          ( flush|pre_error           ),
-    .fence_i                        ( fence_i                   ),
-    .inst_en                        ( inst_en                   ),
-    .inst_addr                      ( inst_addr                 ),
-    .inst_rdata                     ( inst_rdata                ),
-    .cache_miss                     ( icache_miss               ),
-    .sram_req                       ( icache_req                ),
-    .sram_ready                     ( icache_ready              ),
-    .sram_addr                      ( icache_req_addr           ),
-    .sram_rdata                     ( icache_rdata              ),
-    .sram_valid                     ( icache_valid              ),
-    .io_sram0_addr                  ( io_sram0_addr             ),
-    .io_sram0_cen                   ( io_sram0_cen              ),
-    .io_sram0_wen                   ( io_sram0_wen              ),
-    .io_sram0_wmask                 ( io_sram0_wmask            ),
-    .io_sram0_wdata                 ( io_sram0_wdata            ),
-    .io_sram0_rdata                 ( io_sram0_rdata            ),
-    .io_sram1_addr                  ( io_sram1_addr             ),
-    .io_sram1_cen                   ( io_sram1_cen              ),
-    .io_sram1_wen                   ( io_sram1_wen              ),
-    .io_sram1_wmask                 ( io_sram1_wmask            ),
-    .io_sram1_wdata                 ( io_sram1_wdata            ),
-    .io_sram1_rdata                 ( io_sram1_rdata            ),
-    .io_sram2_addr                  ( io_sram2_addr             ),
-    .io_sram2_cen                   ( io_sram2_cen              ),
-    .io_sram2_wen                   ( io_sram2_wen              ),
-    .io_sram2_wmask                 ( io_sram2_wmask            ),
-    .io_sram2_wdata                 ( io_sram2_wdata            ),
-    .io_sram2_rdata                 ( io_sram2_rdata            ),
-    .io_sram3_addr                  ( io_sram3_addr             ),
-    .io_sram3_cen                   ( io_sram3_cen              ),
-    .io_sram3_wen                   ( io_sram3_wen              ),
-    .io_sram3_wmask                 ( io_sram3_wmask            ),
-    .io_sram3_wdata                 ( io_sram3_wdata            ),
-    .io_sram3_rdata                 ( io_sram3_rdata            )
-);
-
-wire                                   clint_en   ;
-wire                                   clint_wen  ;
-wire [`ysyx_22041752_DATA_ADDR_WD-1:0] clint_addr ;
-wire [`ysyx_22041752_DATA_DATA_WD-1:0] clint_wdata;
-wire [`ysyx_22041752_DATA_DATA_WD-1:0] clint_rdata;
-
-wire                                   dcache_data_en    ;
-wire [`ysyx_22041752_DATA_WEN_WD -1:0] dcache_data_wen   ;
-wire [`ysyx_22041752_DATA_ADDR_WD-1:0] dcache_data_addr  ;
-wire [`ysyx_22041752_DATA_DATA_WD-1:0] dcache_data_wdata ;
-wire [`ysyx_22041752_DATA_DATA_WD-1:0] dcache_data_rdata ;
-wire                                   dcache_miss       ;
-wire                                   dcache_write_hit  ;
-wire                                   dcache_sram_req   ;
-wire                                   dcache_sram_ready ;
-wire [`ysyx_22041752_DATA_WEN_WD -1:0] dcache_sram_wen   ;
-wire [`ysyx_22041752_DATA_ADDR_WD-1:0] dcache_sram_addr  ;
-wire [`ysyx_22041752_DATA_DATA_WD-1:0] dcache_sram_wdata ;
-wire [`ysyx_22041752_DATA_DATA_WD-1:0] dcache_sram_rdata ;
-wire                                   dcache_sram_valid ;
-
-wire                                   io_data_en    ;
-wire [`ysyx_22041752_DATA_WEN_WD -1:0] io_data_wen   ;
-wire [`ysyx_22041752_DATA_ADDR_WD-1:0] io_data_addr  ;
-wire [`ysyx_22041752_DATA_DATA_WD-1:0] io_data_wdata ;
-wire [`ysyx_22041752_DATA_DATA_WD-1:0] io_data_rdata ;
-wire                                   io_miss       ;
-wire                                   io_sram_req   ;
-wire [2:0]                             io_sram_size  ;
-wire                                   io_sram_ready ;
-wire [`ysyx_22041752_DATA_WEN_WD -1:0] io_sram_wen   ;
-wire [`ysyx_22041752_DATA_ADDR_WD-1:0] io_sram_addr  ;
-wire [`ysyx_22041752_DATA_DATA_WD-1:0] io_sram_wdata ;
-wire [`ysyx_22041752_DATA_DATA_WD-1:0] io_sram_rdata ;
-wire                                   io_sram_valid ;
-
-wire                                   sram_req   ;
-wire [2:0]                             sram_size  ;
-wire                                   sram_ready ;
-wire [`ysyx_22041752_DATA_WEN_WD -1:0] sram_wen   ;
-wire [`ysyx_22041752_DATA_ADDR_WD-1:0] sram_addr  ;
-wire [`ysyx_22041752_DATA_DATA_WD-1:0] sram_wdata ;
-wire [`ysyx_22041752_DATA_DATA_WD-1:0] sram_rdata ;
-wire                                   sram_valid ;
-
-ysyx_22041752_memspace U_MEMSPACE_0(
-    .clk                            ( clk                         ),
-    .reset                          ( reset                       ),
-    .es_data_en_i                   ( es_data_en                  ),
-    .es_data_wen_i                  ( es_data_wen                 ),
-    .es_data_addr_i                 ( es_data_addr                ),
-    .es_data_wdata_i                ( es_data_wdata               ),
-    .es_write_hit_o                 ( es_write_hit                ),
-    .ms_data_rdata_o                ( ms_data_rdata               ),
-    .ms_miss_o                      ( ms_miss                     ),
-    .clint_en_o                     ( clint_en                    ),
-    .clint_wen_o                    ( clint_wen                   ),
-    .clint_data_addr_o              ( clint_addr                  ),
-    .clint_data_wdata_o             ( clint_wdata                 ),
-    .clint_data_rdata_i             ( clint_rdata                 ),
-    .dcache_en_o                    ( dcache_data_en              ),
-    .dcache_wen_o                   ( dcache_data_wen             ),
-    .dcache_data_addr_o             ( dcache_data_addr            ),
-    .dcache_data_wdata_o            ( dcache_data_wdata           ),
-    .dcache_miss_i                  ( dcache_miss                 ),
-    .dcache_write_hit_i             ( dcache_write_hit            ),
-    .dcache_data_rdata_i            ( dcache_data_rdata           ),
-    .io_miss_i                      ( io_miss                     ),
-    .io_data_rdata_i                ( io_data_rdata               ),
-    .io_en_o                        ( io_data_en                  ),
-    .io_wen_o                       ( io_data_wen                 ),
-    .io_data_addr_o                 ( io_data_addr                ),
-    .io_data_wdata_o                ( io_data_wdata               )
-`ifdef DPI_C
-    ,
-    .debug_dcache_en                ( debug_dcache_en             )
-`endif
-
-);
-
-ysyx_22041752_clint U_CLINT_0(
-    .clk                            ( clk                           ),
-    .reset                          ( reset                         ),
-    .en                             ( clint_en                      ),
-    .wen                            ( clint_wen                     ),
-    .addr                           ( clint_addr                    ),
-    .wdata                          ( clint_wdata                   ),
-    .rdata                          ( clint_rdata                   ),
-    .int_t_o                        ( int_t                         )
-);
-
-ysyx_22041752_DCACHE U_DCACHE_0(
-    .clk                            ( clk                           ),
-    .reset                          ( reset                         ),
-    .fence_i                        ( fence_i                       ),
-    .fence_over                     ( fence_over                    ),
-    .data_en                        ( dcache_data_en                ),
-    .data_wen                       ( dcache_data_wen               ),
-    .data_addr                      ( dcache_data_addr              ),
-    .data_wdata                     ( dcache_data_wdata             ),
-    .data_rdata                     ( dcache_data_rdata             ),
-    .cache_miss                     ( dcache_miss                   ),
-    .write_hit                      ( dcache_write_hit              ),
-    .sram_req                       ( dcache_sram_req               ),
-    .sram_ready                     ( dcache_sram_ready             ),
-    .sram_wen                       ( dcache_sram_wen               ),
-    .sram_addr                      ( dcache_sram_addr              ),
-    .sram_wdata                     ( dcache_sram_wdata             ),
-    .sram_rdata                     ( dcache_sram_rdata             ),
-    .sram_valid                     ( dcache_sram_valid             ),
-    .io_sram4_addr                  ( io_sram4_addr                 ), 
-    .io_sram4_cen                   ( io_sram4_cen                  ),
-    .io_sram4_wen                   ( io_sram4_wen                  ),
-    .io_sram4_wmask                 ( io_sram4_wmask                ),
-    .io_sram4_wdata                 ( io_sram4_wdata                ),
-    .io_sram4_rdata                 ( io_sram4_rdata                ),
-    .io_sram5_addr                  ( io_sram5_addr                 ),
-    .io_sram5_cen                   ( io_sram5_cen                  ),
-    .io_sram5_wen                   ( io_sram5_wen                  ),
-    .io_sram5_wmask                 ( io_sram5_wmask                ),
-    .io_sram5_wdata                 ( io_sram5_wdata                ),
-    .io_sram5_rdata                 ( io_sram5_rdata                ),
-    .io_sram6_addr                  ( io_sram6_addr                 ),
-    .io_sram6_cen                   ( io_sram6_cen                  ),
-    .io_sram6_wen                   ( io_sram6_wen                  ),
-    .io_sram6_wmask                 ( io_sram6_wmask                ),
-    .io_sram6_wdata                 ( io_sram6_wdata                ),
-    .io_sram6_rdata                 ( io_sram6_rdata                ),
-    .io_sram7_addr                  ( io_sram7_addr                 ),
-    .io_sram7_cen                   ( io_sram7_cen                  ),
-    .io_sram7_wen                   ( io_sram7_wen                  ),
-    .io_sram7_wmask                 ( io_sram7_wmask                ),
-    .io_sram7_wdata                 ( io_sram7_wdata                ),
-    .io_sram7_rdata                 ( io_sram7_rdata                )
-);
-
-ysyx_22041752_io U_IO_0(
-    .clk                            ( clk                           ),
-    .reset                          ( reset                         ),
-    .io_en                          ( io_data_en                    ),
-    .io_wen                         ( io_data_wen                   ),
-    .io_data_addr                   ( io_data_addr                  ),
-    .io_data_wdata                  ( io_data_wdata                 ),
-    .io_data_rdata                  ( io_data_rdata                 ),
-    .io_miss                        ( io_miss                       ),
-    .sram_req                       ( io_sram_req                   ),
-    .size                           ( io_sram_size                  ),
-    .sram_ready                     ( io_sram_ready                 ),
-    .sram_wen                       ( io_sram_wen                   ),
-    .sram_addr                      ( io_sram_addr                  ),
-    .sram_wdata                     ( io_sram_wdata                 ),
-    .sram_rdata                     ( io_sram_rdata                 ),
-    .sram_valid                     ( io_sram_valid                 )
-);
-
-ysyx_22041752_mmu U_MMU_0(
-    .clk                            ( clk                         ),
-    .reset                          ( reset                       ),
-    .dcache_sram_req_i              ( dcache_sram_req             ),
-    .dcache_sram_ready_o            ( dcache_sram_ready           ),
-    .dcache_sram_wen_i              ( dcache_sram_wen             ),
-    .dcache_sram_addr_i             ( dcache_sram_addr            ),
-    .dcache_sram_wdata_i            ( dcache_sram_wdata           ),
-    .dcache_sram_rdata_o            ( dcache_sram_rdata           ),
-    .dcache_sram_valid_o            ( dcache_sram_valid           ),
-    .io_sram_req_i                  ( io_sram_req                 ),
-    .io_sram_size_i                 ( io_sram_size                ),
-    .io_sram_ready_o                ( io_sram_ready               ),
-    .io_sram_wen_i                  ( io_sram_wen                 ),
-    .io_sram_addr_i                 ( io_sram_addr                ),
-    .io_sram_wdata_i                ( io_sram_wdata               ),
-    .io_sram_rdata_o                ( io_sram_rdata               ),
-    .io_sram_valid_o                ( io_sram_valid               ),
-    .sram_req_o                     ( sram_req                    ),
-    .sram_size_o                    ( sram_size                   ),
-    .sram_ready_i                   ( sram_ready                  ),
-    .sram_wen_o                     ( sram_wen                    ),
-    .sram_addr_o                    ( sram_addr                   ),
-    .sram_wdata_o                   ( sram_wdata                  ),
-    .sram_rdata_i                   ( sram_rdata                  ),
-    .sram_valid_i                   ( sram_valid                  )
-);
-
-ysyx_22041752_axiarbiter U_AXIARBITER_0(
-    .clk                            ( clk                           ),
-    .reset                          ( reset                         ),
-    .inst_en                        ( icache_req                    ),
-    .inst_ready                     ( icache_ready                  ),
-    .inst_addr                      ( icache_req_addr               ),
-    .inst_rdata                     ( icache_rdata                  ),
-    .inst_valid                     ( icache_valid                  ),
-    .data_en                        ( sram_req                      ),
-    .data_size                      ( sram_size                     ),
-    .data_ready                     ( sram_ready                    ),
-    .data_wen                       ( sram_wen                      ),
-    .data_addr                      ( sram_addr                     ),
-    .data_wdata                     ( sram_wdata                    ),
-    .data_rdata                     ( sram_rdata                    ),
-    .data_valid                     ( sram_valid                    ),
-    .arid                           ( io_master_arid                ),
-    .araddr                         ( io_master_araddr              ),
-    .arlen                          ( io_master_arlen               ),
-    .arsize                         ( io_master_arsize              ),
-    .arburst                        ( io_master_arburst             ),
-    .arvalid                        ( io_master_arvalid             ),
-    .arready                        ( io_master_arready             ),
-    .rid                            ( io_master_rid                 ),
-    .rdata                          ( io_master_rdata               ),
-    .rresp                          ( io_master_rresp               ),
-    .rlast                          ( io_master_rlast               ),
-    .rvalid                         ( io_master_rvalid              ),
-    .rready                         ( io_master_rready              ),
-    .awid                           ( io_master_awid                ),
-    .awaddr                         ( io_master_awaddr              ),
-    .awlen                          ( io_master_awlen               ),
-    .awsize                         ( io_master_awsize              ),
-    .awburst                        ( io_master_awburst             ),
-    .awvalid                        ( io_master_awvalid             ),
-    .awready                        ( io_master_awready             ),
-    .wdata                          ( io_master_wdata               ),
-    .wstrb                          ( io_master_wstrb               ),
-    .wlast                          ( io_master_wlast               ),
-    .wvalid                         ( io_master_wvalid              ),
-    .wready                         ( io_master_wready              ),
-    .bid                            ( io_master_bid                 ),
-    .bresp                          ( io_master_bresp               ),
-    .bvalid                         ( io_master_bvalid              ),
-    .bready                         ( io_master_bready              )
-);
-
-
-`ifdef DPI_C
-dpi_c u_dpi_c(
-    .clk                    (  clk                       ),
-    .stop                   (  stop                      ),
-    .ws_valid               (  debug_ws_valid            ),
-    .dpi_regs               (  dpi_regs                  ),
-    .dpi_csrs               (  dpi_csrs                  ),
-    .debug_wb_pc            ( {32'd0,debug_wb_pc}        ),
-    .debug_es_pc            ( {32'd0,debug_es_pc}        ),
-    .debug_es_bjpre_error   ( debug_es_bjpre_error       ),
-    .debug_es_bj_inst       ( debug_es_bj_inst           ),
-    .debug_es_exp           ( debug_es_exp               ),
-    .debug_es_mret          ( debug_es_mret              ),
-    .debug_es_data_ren      ( debug_es_data_ren          ),
-    .debug_es_data_wen      ( debug_es_data_wen          ),
-    .debug_ms_rdata_valid   ( debug_ms_rdata_valid       ),
-    .debug_ms_data_rdata    ( debug_ms_data_rdata        ),
-    .debug_es_data_addr     ( {32'b0,debug_es_data_addr} ),
-    .debug_es_data_wdata    ( debug_es_data_wdata        ),
-    .debug_ws_inst          ( debug_ws_inst              ),
-    .debug_ws_out_of_mem    ( debug_ws_out_of_mem        ),
-    .debug_es_inst          ( debug_es_inst              ),
-    .debug_icache_miss      ( debug_icache_miss          ),
-    .debug_dcache_miss      ( debug_dcache_miss          ),
-    .debug_dcache_en        ( debug_dcache_en            )
-);
-`endif
-
+    assign sum = a ^ b ^ cin;
+    assign cout = a&b || a&cin || b&cin;
 endmodule
 // +FHDR----------------------------------------------------------------------------
 //                 Copyright (c) 2022 
@@ -764,7 +139,7 @@ endmodule
 // Filename      : ysyx_22041752_IFU.v
 // Author        : Cw
 // Created On    : 2022-10-17 20:50
-// Last Modified : 2023-07-20 12:39
+// Last Modified : 2024-03-27 16:18
 // ---------------------------------------------------------------------------------
 // Description   : 
 //
@@ -787,13 +162,47 @@ module ysyx_22041752_IFU (
     input  [`ysyx_22041752_PC_WD       -1:0]     ra_data        ,
     input                                        flush          , 
     input  [`ysyx_22041752_PC_WD-1:0]            flush_pc       ,
-    input                                        flush_pc_p4    
+    input                                        bjpre_error    ,
+    input  [`ysyx_22041752_PC_WD-1:0]            bjpre_pc       ,
+    input                                        bjpre_pc_p4    ,
+    input                                        fence_over     ,
+    input  [`ysyx_22041752_PC_WD-1:0]            fence_over_pc 
 `ifdef DPI_C
     ,
     output                                       debug_icache_miss
 `endif
 
 );
+
+reg                            flush_r      ;     
+reg [`ysyx_22041752_PC_WD-1:0] flush_pc_r   ;    
+reg                            bjpre_error_r;    
+reg [`ysyx_22041752_PC_WD-1:0] bjpre_pc_r   ;    
+reg                            bjpre_pc_p4_r;    
+reg                            fence_over_r ;      
+reg [`ysyx_22041752_PC_WD-1:0] fence_over_pc_r; 
+always @(posedge clk) begin
+    if (reset) begin
+        flush_r         <= 1'b0;
+        flush_pc_r      <= `ysyx_22041752_PC_WD'b0;  
+        bjpre_error_r   <= 1'b0;
+        bjpre_pc_r      <= `ysyx_22041752_PC_WD'b0;
+        bjpre_pc_p4_r   <= 1'b0;
+        fence_over_r    <= 1'b0;
+        fence_over_pc_r <= `ysyx_22041752_PC_WD'b0; 
+    end 
+    else begin
+        flush_r         <= flush      ; 
+        flush_pc_r      <= flush_pc   ; 
+        bjpre_error_r   <= bjpre_error; 
+        bjpre_pc_r      <= bjpre_pc   ; 
+        bjpre_pc_p4_r   <= bjpre_pc_p4; 
+        fence_over_r    <= fence_over ; 
+        fence_over_pc_r <= fence_over_pc; 
+    end
+end
+
+
 
 reg         fs_valid;
 wire        fs_ready_go;
@@ -832,36 +241,39 @@ assign fs_to_ds_bus = {fs_inst      ,
                        imm_b        
                       };
 
-reg [`ysyx_22041752_PC_WD-1:0] flush_pc_r;
+reg [`ysyx_22041752_PC_WD-1:0] flush_pc_buf;
 always @(posedge clk) begin
     if (reset) begin
-        flush_pc_r <= 0;
+        flush_pc_buf <= 0;
     end
-    else if (flush && !(fs_to_ds_valid && ds_allowin)) begin
-        flush_pc_r <= seq_bj_pc;
+    else if ((flush_r || bjpre_error_r || fence_over_r) && !(fs_to_ds_valid && ds_allowin)) begin
+        flush_pc_buf <= seq_bj_pc;
     end
 end
-reg flush_pc_r_v;
+reg flush_pc_buf_v;
 always @(posedge clk) begin
     if (reset) begin
-        flush_pc_r_v <= 0;
+        flush_pc_buf_v <= 0;
     end
-    else if (flush && !(fs_to_ds_valid && ds_allowin)) begin
-        flush_pc_r_v <= 1;
+    else if ((flush_r || bjpre_error_r || fence_over_r) && !(fs_to_ds_valid && ds_allowin)) begin
+        flush_pc_buf_v <= 1;
     end
     else if (inst_en) begin
-        flush_pc_r_v <= 0;
+        flush_pc_buf_v <= 0;
     end
 end
 
-assign nextpc  = flush_pc_r_v  ? flush_pc_r :
-                                 seq_bj_pc  ; 
+assign nextpc  = flush_pc_buf_v ? flush_pc_buf :
+                                  seq_bj_pc    ; 
 
-assign to_fs_valid  = ~reset;
+assign to_fs_valid  = ~reset && !flush && !bjpre_error && !fence_over;
 
 assign fs_ready_go    = !cache_miss;
 assign fs_allowin     = !fs_valid || fs_ready_go && ds_allowin;
-assign fs_to_ds_valid =  fs_valid && fs_ready_go && !flush && !flush_pc_r_v;
+assign fs_to_ds_valid =  fs_valid && fs_ready_go && !(flush       | flush_r      )
+                                                 && !(bjpre_error | bjpre_error_r)
+                                                 && !(fence_over  | fence_over_r )
+                                                 && !flush_pc_buf_v ;
 always @(posedge clk) begin
     if (reset) begin
         fs_valid <= 1'b0;
@@ -888,11 +300,11 @@ always @(posedge clk) begin
     if (reset) begin
         inst_rdata_r_v <= 0;
     end
+    else if (fs_to_ds_valid && ds_allowin || flush_r || bjpre_error_r || fence_over_r) begin
+        inst_rdata_r_v <= 0;
+    end
     else if (fs_to_ds_valid && !ds_allowin) begin
         inst_rdata_r_v <= 1;
-    end
-    else if (fs_to_ds_valid||flush) begin
-        inst_rdata_r_v <= 0;
     end
 end
 reg [`ysyx_22041752_INST_WD-1:0] inst_rdata_r;
@@ -932,30 +344,43 @@ assign br_taken=fs_valid && ((fs_inst_beq  ||
                               fs_inst_bgeu) && imm_b[12] || fs_inst_jal || fs_inst_jalr);
 
 wire [`ysyx_22041752_PC_WD-1:0] bt_a;
-wire [`ysyx_22041752_PC_WD-1:0] bt_b;
+//wire [`ysyx_22041752_PC_WD-1:0] bt_b;
 wire [`ysyx_22041752_PC_WD-1:0] bt_c;
 
-assign bt_a = flush ? flush_pc : fs_inst_jalr ? ra_data : fs_pc;
+wire [`ysyx_22041752_PC_WD-1:0] seq_pc;
+wire [`ysyx_22041752_PC_WD-1:0] bj_pc;
+wire [`ysyx_22041752_PC_WD-1:0] b_pc;
+wire [`ysyx_22041752_PC_WD-1:0] jal_pc;
+wire [`ysyx_22041752_PC_WD-1:0] jalr_pc;
 
-assign bt_b = (fs_inst_beq || fs_inst_bne || fs_inst_blt || fs_inst_bge || fs_inst_bltu || fs_inst_bgeu) ? {{19{imm_b[12]}},imm_b} :
-               fs_inst_jalr                                                                              ? {{20{imm_i[11]}},imm_i} :
-                                                                                                           {{11{imm_j[20]}},imm_j} ;
+assign bt_a = flush_r       ? flush_pc_r      : 
+              bjpre_error_r ? bjpre_pc_r      :
+              fence_over_r  ? fence_over_pc_r :
+              fs_inst_jalr  ? ra_data         : 
+                              fs_pc           ;
 
-assign bt_c = flush &&!flush_pc_p4 ? 0    : 
-              flush && flush_pc_p4 ? 4    : 
-              br_taken             ? bt_b : 
-                                     4    ;
+//assign bt_b = (fs_inst_beq || fs_inst_bne || fs_inst_blt || fs_inst_bge || fs_inst_bltu || fs_inst_bgeu) ? {{19{imm_b[12]}},imm_b} :
+               //fs_inst_jalr                                                                              ? {{20{imm_i[11]}},imm_i} :
+                                                                                                           //{{11{imm_j[20]}},imm_j} ;
+
+assign bt_c = bjpre_error_r&&bjpre_pc_p4_r || fence_over_r ? 4    :
+              flush_r || bjpre_error_r                     ? 0    : 
+              //br_taken                                     ? bt_b : 
+                                                             4    ;
 assign br_target = seq_bj_pc;
 
-wire count;
-ysyx_22041752_aser #(.WIDTH (32))
-U_ASER_1(
-    .a          ( bt_a      ),
-    .b          ( bt_c      ),
-    .sub        ( 1'b0      ),
-    .cout       ( count     ),
-    .result     ( seq_bj_pc )
-);
+assign bj_pc = {`ysyx_22041752_PC_WD{(fs_inst_beq || fs_inst_bne || fs_inst_blt || fs_inst_bge || fs_inst_bltu || fs_inst_bgeu)}} & b_pc    | 
+               {`ysyx_22041752_PC_WD{fs_inst_jalr}}                                                                               & jalr_pc |
+               {`ysyx_22041752_PC_WD{fs_inst_jal }}                                                                               & jal_pc  ;
+
+assign seq_bj_pc = bjpre_error_r || fence_over_r || flush_r ? seq_pc :
+                   br_taken                                 ? bj_pc  :
+                                                              seq_pc ;
+
+assign seq_pc = bt_a+bt_c;
+assign b_pc   = bt_a+ {{19{imm_b[12]}},imm_b};
+assign jal_pc = bt_a+ {{11{imm_j[20]}},imm_j};
+assign jalr_pc= bt_a+ {{20{imm_i[11]}},imm_i};
 
 `ifdef DPI_C
     assign debug_icache_miss = cache_miss;
@@ -966,10 +391,80 @@ endmodule
 //                 Copyright (c) 2022 
 //                       ALL RIGHTS RESERVED
 // ---------------------------------------------------------------------------------
+// Filename      : ysyx_22041752_regfiles.v
+// Author        : Cw
+// Created On    : 2022-10-17 21:21
+// Last Modified : 2024-03-13 22:54
+// ---------------------------------------------------------------------------------
+// Description   : 
+//
+//
+// -FHDR----------------------------------------------------------------------------
+module ysyx_22041752_rf (
+    input                                    clk,
+    input                                    reset,
+    input  [`ysyx_22041752_RF_ADDR_WD-1 : 0] addr_r1,
+    input  [`ysyx_22041752_RF_ADDR_WD-1 : 0] addr_r2,
+    output [`ysyx_22041752_RF_DATA_WD-1 : 0] data_r1,
+    output [`ysyx_22041752_RF_DATA_WD-1 : 0] data_r2,
+    input  [`ysyx_22041752_RF_ADDR_WD-1 : 0] addr_w ,
+    input                                    we     , 
+    input  [`ysyx_22041752_RF_DATA_WD-1 : 0] data_w ,
+
+    output [`ysyx_22041752_PC_WD     -1 : 0] ra_data
+`ifdef DPI_C
+        ,
+    output [`ysyx_22041752_RF_DATA_WD-1 : 0] dpi_regs [`ysyx_22041752_RF_NUM-1 : 0]
+`endif
+);
+
+reg [`ysyx_22041752_RF_DATA_WD-1 : 0] regs [`ysyx_22041752_RF_NUM-1 : 0];
+
+assign data_r1 = regs[addr_r1];
+assign data_r2 = regs[addr_r2];
+
+always @(posedge clk) begin
+    if (reset) 
+        regs[0] <= `ysyx_22041752_RF_DATA_WD'b0;
+    else
+        regs[0] <= `ysyx_22041752_RF_DATA_WD'b0;
+end
+
+genvar i;
+generate
+    for (i = 1; i < `ysyx_22041752_RF_NUM; i=i+1) begin
+        :Write_Regs
+        always @(posedge clk) begin
+            if (reset) begin
+                regs[i] <= `ysyx_22041752_RF_DATA_WD'b0;
+            end
+            else if(we && (addr_w == i))
+                regs[i] <= data_w;
+        end
+    end
+endgenerate
+
+assign ra_data = regs[1][31:0];
+
+`ifdef DPI_C
+generate
+    for(i = 0; i < `ysyx_22041752_RF_NUM; i=i+1) begin
+        :DPI_C_REGS
+        assign dpi_regs[i] = regs[i];
+    end
+endgenerate
+`endif
+
+endmodule
+
+// +FHDR----------------------------------------------------------------------------
+//                 Copyright (c) 2022 
+//                       ALL RIGHTS RESERVED
+// ---------------------------------------------------------------------------------
 // Filename      : ysyx_22041752_IDU.v
 // Author        : Cw
 // Created On    : 2022-10-17 21:00
-// Last Modified : 2023-07-24 12:06
+// Last Modified : 2024-03-27 11:33
 // ---------------------------------------------------------------------------------
 // Description   : 
 //
@@ -995,7 +490,9 @@ module ysyx_22041752_IDU (
 	input  [`ysyx_22041752_WS_FORWARD_BUS_WD -1:0] ws_forward_bus,
 
     output [`ysyx_22041752_PC_WD          -1:0]    ra_data       ,
-    input                                          flush         
+    input                                          flush         ,
+    input                                          bjpre_error   ,
+    input                                          fence_over     
 
 `ifdef DPI_C
         ,
@@ -1005,6 +502,22 @@ module ysyx_22041752_IDU (
     output [`ysyx_22041752_INST_WD        -1:0]    debug_ds_inst
 `endif
 );
+
+reg                            flush_r      ;     
+reg                            bjpre_error_r;    
+reg                            fence_over_r ;      
+always @(posedge clk) begin
+    if (reset) begin
+        flush_r         <= 1'b0;
+        bjpre_error_r   <= 1'b0;
+        fence_over_r    <= 1'b0;
+    end 
+    else begin
+        flush_r         <= flush      ; 
+        bjpre_error_r   <= bjpre_error; 
+        fence_over_r    <= fence_over ; 
+    end
+end
 
 reg  ds_valid   ;
 wire ds_ready_go;
@@ -1246,8 +759,24 @@ assign ds_to_es_bus = {inst_fence_i  ,
                        ds_pc            
                       };
 
+reg flush_buf_v;
+always @(posedge clk) begin
+    if (reset) begin
+        flush_buf_v <= 0;
+    end
+    else if ((flush_r || bjpre_error_r || fence_over_r) && !(ds_to_es_valid && es_allowin)) begin
+        flush_buf_v <= 1;
+    end
+    else if (es_allowin) begin
+        flush_buf_v <= 0;
+    end
+end
+
 assign ds_allowin     = !ds_valid || ds_ready_go && es_allowin;
-assign ds_to_es_valid = ds_valid && ds_ready_go && ~flush;
+assign ds_to_es_valid = ds_valid && ds_ready_go && !(flush       |flush_r       ) 
+                                                && !(bjpre_error | bjpre_error_r)
+                                                && !(fence_over  | fence_over_r )
+                                                && !flush_buf_v;
 assign ds_ready_go = !(ms_mem_re && (ms_rs1_hazard || ms_rs2_hazard) ||
                        es_mem_re && (es_rs1_hazard || es_rs2_hazard));
 always @(posedge clk) begin
@@ -1458,7 +987,7 @@ assign src_shamt = inst_slli || inst_slliw || inst_srli || inst_srliw || inst_sr
 assign src_pc    = inst_jal  || inst_jalr  || inst_auipc;
 assign src_imm_u = inst_lui  || inst_auipc;
 assign src_4     = inst_jal  || inst_jalr;
-assign src_0     = inst_lui  || inst_csrrw || inst_csrrs|| inst_csrrc || inst_csrrwi|| inst_csrrsi||inst_csrrci;
+assign src_0     = inst_lui;
 assign src_imm_i = inst_lb   || inst_lh    || inst_lw   || inst_lbu   || inst_lhu  || inst_lwu  ||
                    inst_ld   || inst_addi  || inst_addiw|| inst_slti  || inst_sltiu|| inst_xori || inst_ori || inst_andi;
 assign src_imm_s = inst_sb   || inst_sh    || inst_sw   || inst_sd;
@@ -1522,68 +1051,821 @@ assign debug_ds_inst = ds_inst;
 endmodule
 
 // +FHDR----------------------------------------------------------------------------
-//                 Copyright (c) 2022 
+//                 Copyright (c) 2023 
 //                       ALL RIGHTS RESERVED
 // ---------------------------------------------------------------------------------
-// Filename      : ysyx_22041752_regfiles.v
+// Filename      : ysyx_22041752_bjt_cal.v
 // Author        : Cw
-// Created On    : 2022-10-17 21:21
-// Last Modified : 2023-07-24 12:07
+// Created On    : 2023-06-06 09:19
+// Last Modified : 2024-03-27 18:23
 // ---------------------------------------------------------------------------------
 // Description   : 
 //
 //
 // -FHDR----------------------------------------------------------------------------
-module ysyx_22041752_rf (
-    input                                    clk,
-    input                                    reset,
-    input  [`ysyx_22041752_RF_ADDR_WD-1 : 0] addr_r1,
-    input  [`ysyx_22041752_RF_ADDR_WD-1 : 0] addr_r2,
-    output [`ysyx_22041752_RF_DATA_WD-1 : 0] data_r1,
-    output [`ysyx_22041752_RF_DATA_WD-1 : 0] data_r2,
-    input  [`ysyx_22041752_RF_ADDR_WD-1 : 0] addr_w ,
-    input                                    we     , 
-    input  [`ysyx_22041752_RF_DATA_WD-1 : 0] data_w ,
+module ysyx_22041752_bjt_cal (
+    input                             jalr         ,
+    input  [11:0]                     imm_i        ,
+    input  [`ysyx_22041752_PC_WD-1:0] jalr_src1    ,
+    input                             branch       ,
+    input  [12:0]                     imm_b        ,
+    input  [`ysyx_22041752_PC_WD-1:0] es_pc        ,
+    input                             b_taken_real ,
+    input                             br_taken_pre ,
+    input  [`ysyx_22041752_PC_WD-1:0] jt_pre       ,
 
-    output [`ysyx_22041752_PC_WD     -1 : 0] ra_data
-`ifdef DPI_C
-        ,
-    output [`ysyx_22041752_RF_DATA_WD-1 : 0] dpi_regs [`ysyx_22041752_RF_NUM-1 : 0]
-`endif
+    output                            pre_error    ,
+    output [`ysyx_22041752_PC_WD-1:0] bj_addr
 );
 
-reg [`ysyx_22041752_RF_DATA_WD-1 : 0] regs [`ysyx_22041752_RF_NUM-1 : 0];
+wire [`ysyx_22041752_PC_WD-1:0] bt_a;
+wire [`ysyx_22041752_PC_WD-1:0] bt_b;
+assign bt_a = jalr ? jalr_src1 : es_pc;
 
-assign data_r1 = regs[addr_r1];
-assign data_r2 = regs[addr_r2];
+assign bt_b = branch ? {{19{imm_b[12]}},imm_b} :
+                       {{20{imm_i[11]}},imm_i} ;
 
-always @(*) begin
-    regs[0] = `ysyx_22041752_RF_DATA_WD'b0;
+assign bj_addr = bt_a+bt_b;
+
+wire br_err   = branch && (br_taken_pre!=b_taken_real);
+wire jalr_err = jalr   && (bj_addr     !=jt_pre);
+
+assign pre_error = br_err || jalr_err;
+
+endmodule
+
+// +FHDR----------------------------------------------------------------------------
+//                 Copyright (c) 2023 
+//                       ALL RIGHTS RESERVED
+// ---------------------------------------------------------------------------------
+// Filename      : ysyx_22041752_csr.v
+// Author        : Cw
+// Created On    : 2023-03-28 22:12
+// Last Modified : 2023-07-20 16:41
+// ---------------------------------------------------------------------------------
+// Description   : 
+//
+//
+// -FHDR----------------------------------------------------------------------------
+module ysyx_22041752_csr (
+    input clk   ,
+    input reset ,
+
+    input         int_allowin,
+    input         mret       ,
+    input         wen        ,
+    input  [11:0] addr       ,
+    input  [63:0] wdata      ,
+    output [63:0] rdata      ,
+    
+    input  int_t_i           ,
+    output int_t_o           
+    `ifdef DPI_C
+        ,
+    output [63:0] dpi_csrs [3:0]
+`endif
+);
+    
+reg [63:0] mstatus;
+reg [63:0] mtvec  ;
+reg [63:0] mepc   ;
+reg [63:0] mcause ;
+reg [63:0] mie    ;
+
+reg [63:0] mip    ;
+
+assign rdata = {64{(addr == `ysyx_22041752_CSR_ADDR_MSTATUS)}} & mstatus |
+               {64{(addr == `ysyx_22041752_CSR_ADDR_MIE)}}     & mie     |
+               {64{(addr == `ysyx_22041752_CSR_ADDR_MIP)}}     & mip     |
+               {64{(addr == `ysyx_22041752_CSR_ADDR_MTVEC)}}   & mtvec   |
+               {64{(addr == `ysyx_22041752_CSR_ADDR_MEPC)}}    & mepc    |
+               {64{(addr == `ysyx_22041752_CSR_ADDR_MCAUSE)}}  & mcause  ;
+
+always @(posedge clk) begin
+    if (reset) begin
+        mstatus <= 64'ha00001800;
+    end
+    else if (int_t_o) begin
+        mstatus[7] <= mstatus[3]; //mpie <= mie 
+        mstatus[3] <= 1'b0; //mie <= 0
+    end
+    else if (wen && addr == `ysyx_22041752_CSR_ADDR_MSTATUS) begin
+        mstatus <= wdata;
+    end
+    else if (mret) begin
+        mstatus[7] <= 1'b1; //mpie <= 1
+        mstatus[3] <= mstatus[7]; //mie <= mpie
+    end
 end
 
+always @(posedge clk) begin
+    if (reset) begin
+        mtvec <= 0;
+    end
+    else if (wen && addr == `ysyx_22041752_CSR_ADDR_MTVEC) begin
+        mtvec <= wdata;
+    end
+end
+
+always @(posedge clk) begin
+    if (reset) begin
+        mepc <= 0;
+    end
+    else if (wen && addr == `ysyx_22041752_CSR_ADDR_MEPC) begin
+        mepc <= {wdata[63:1], 1'b0};
+    end
+end
+
+always @(posedge clk) begin
+    if (reset) begin
+        mcause <= 0;
+    end
+    else if (wen && addr == `ysyx_22041752_CSR_ADDR_MCAUSE) begin
+        mcause <= wdata;
+    end
+end
+
+always @(posedge clk) begin
+    if (reset) begin
+        mie <= 0;
+    end
+    else if (wen && addr == `ysyx_22041752_CSR_ADDR_MIE) begin
+        mie <= wdata;
+    end
+end
+
+always @(posedge clk) begin
+    if (reset) begin
+        mip <= 0;
+    end
+    else begin
+        mip[7] <= mstatus[3] & mie[7] & int_t_i;
+    end
+end
+
+assign int_t_o = int_allowin && mip[7];
+
+`ifdef DPI_C
+assign dpi_csrs[0] = mstatus; 
+assign dpi_csrs[1] = mtvec;   
+assign dpi_csrs[2] = mepc;    
+assign dpi_csrs[3] = mcause;  
+`endif
+
+endmodule
+
+// +FHDR----------------------------------------------------------------------------
+//                 Copyright (c) 2023 
+//                       ALL RIGHTS RESERVED
+// ---------------------------------------------------------------------------------
+// Filename      : ysyx_22041752_booth2_enc.v
+// Author        : John
+// Created On    : 2023-09-08 21:44
+// Last Modified : 2024-03-22 13:33
+// ---------------------------------------------------------------------------------
+// Description   : 
+//
+//
+// -FHDR----------------------------------------------------------------------------
+module ysyx_22041752_booth2_enc # (
+    parameter BIT_WIDTH_X = 8
+) (
+    input  [2*BIT_WIDTH_X-1:0] x  , 
+    input  [2              :0] y  ,
+    output [2*BIT_WIDTH_X-1:0] o  ,
+    output                     c
+);
+   
+wire [7:0] B;
 genvar i;
 generate
-    for (i = 1; i < `ysyx_22041752_RF_NUM; i=i+1) begin
-        :Write_Regs
-        always @(posedge clk) begin
-            if (reset) begin
-                regs[i] <= 0;
-            end
-            else if(we && (addr_w == i))
-                regs[i] <= data_w;
+    for (i = 0; i < 8; i=i+1) begin
+        :BOOTH_JUDGE
+        assign B[i] = y==i;
+    end
+endgenerate
+
+wire add_zero;
+wire add_x   ;
+wire add_x_n ;
+wire add_2x  ;
+wire add_2x_n;
+assign add_zero = B[7] | B[0];
+assign add_x    = B[1] | B[2];
+assign add_x_n  = B[5] | B[6];
+assign add_2x   = B[3]       ;
+assign add_2x_n = B[4]       ;
+
+
+assign c = add_x_n | add_2x_n;
+
+assign o = {2*BIT_WIDTH_X{add_x   }} &  x                           |
+           {2*BIT_WIDTH_X{add_x_n }} & ~x                           |
+           {2*BIT_WIDTH_X{add_2x  }} &  {x[2*BIT_WIDTH_X-2:0],1'b0} |
+           {2*BIT_WIDTH_X{add_2x_n}} & ~{x[2*BIT_WIDTH_X-2:0],1'b0} |
+           {2*BIT_WIDTH_X{add_zero}} &  {2*BIT_WIDTH_X{1'b0}}       ;
+
+endmodule
+// +FHDR----------------------------------------------------------------------------
+//                 Copyright (c) 2023 
+//                       ALL RIGHTS RESERVED
+// ---------------------------------------------------------------------------------
+// Filename      : ysyx_22041752_switch.v
+// Author        : John
+// Created On    : 2023-09-09 16:09
+// Last Modified : 2024-03-22 15:49
+// ---------------------------------------------------------------------------------
+// Description   : switch partial products for wallace tree.
+//
+//
+// -FHDR----------------------------------------------------------------------------
+module ysyx_22041752_switch # (
+    parameter DW  = 8 ,
+    parameter NUM = 4
+)(
+    input  [DW -1:0] in [NUM-1:0] , 
+    output [NUM-1:0] o  [DW -1:0]
+);
+    
+genvar i, j;
+generate
+    for (i = 0; i < DW; i = i + 1) begin
+        :RAW
+        for (j = 0; j < NUM; j = j + 1) begin
+           :COLUMN 
+           assign o[i][j] = in[j][i];
         end
     end
 endgenerate
 
-assign ra_data = regs[1][31:0];
+endmodule
+// +FHDR----------------------------------------------------------------------------
+//                 Copyright (c) 2023 
+//                       ALL RIGHTS RESERVED
+// ---------------------------------------------------------------------------------
+// Filename      : ysyx_22041752_wallace_tree.v
+// Author        : John
+// Created On    : 2023-09-08 21:11
+// Last Modified : 2024-03-22 16:07
+// ---------------------------------------------------------------------------------
+// Description   : 
+//
+//
+// -FHDR----------------------------------------------------------------------------
 
-`ifdef DPI_C
+module ysyx_22041752_wallace_tree # (
+    parameter BIT_WIDTH = 33 
+) (
+    input  [BIT_WIDTH-1:0]   a        ,
+    input  [BIT_WIDTH-1-3:0] cin      ,
+    output [BIT_WIDTH-1-3:0] cout     ,
+    output                   sum      ,
+    output                   saved_c
+);
+    
+wire [BIT_WIDTH-3:0] s;
+wire [BIT_WIDTH-3:0] c;
+
+/*=================================================================*/
+ysyx_22041752_fadder_1b U_YSYX_22041752_FADDER_1B_0(
+    .a                              ( a[0]                          ),
+    .b                              ( a[1]                          ),
+    .cin                            ( a[2]                          ),
+    .cout                           ( c[0]                          ),
+    .sum                            ( s[0]                          )
+);
+ysyx_22041752_fadder_1b U_YSYX_22041752_FADDER_1B_1(
+    .a                              ( a[3]                          ),
+    .b                              ( a[4]                          ),
+    .cin                            ( a[5]                          ),
+    .cout                           ( c[1]                          ),
+    .sum                            ( s[1]                          )
+);
+ysyx_22041752_fadder_1b U_YSYX_22041752_FADDER_1B_2(
+    .a                              ( a[6]                          ),
+    .b                              ( a[7]                          ),
+    .cin                            ( a[8]                          ),
+    .cout                           ( c[2]                          ),
+    .sum                            ( s[2]                          )
+);
+ysyx_22041752_fadder_1b U_YSYX_22041752_FADDER_1B_3(
+    .a                              ( a[9]                          ),
+    .b                              ( a[10]                         ),
+    .cin                            ( a[11]                         ),
+    .cout                           ( c[3]                          ),
+    .sum                            ( s[3]                          )
+);
+ysyx_22041752_fadder_1b U_YSYX_22041752_FADDER_1B_4(
+    .a                              ( a[12]                         ),
+    .b                              ( a[13]                         ),
+    .cin                            ( a[14]                         ),
+    .cout                           ( c[4]                          ),
+    .sum                            ( s[4]                          )
+);
+ysyx_22041752_fadder_1b U_YSYX_22041752_FADDER_1B_5(
+    .a                              ( a[15]                         ),
+    .b                              ( a[16]                         ),
+    .cin                            ( a[17]                         ),
+    .cout                           ( c[5]                          ),
+    .sum                            ( s[5]                          )
+);
+ysyx_22041752_fadder_1b U_YSYX_22041752_FADDER_1B_6(
+    .a                              ( a[18]                         ),
+    .b                              ( a[19]                         ),
+    .cin                            ( a[20]                         ),
+    .cout                           ( c[6]                          ),
+    .sum                            ( s[6]                          )
+);
+ysyx_22041752_fadder_1b U_YSYX_22041752_FADDER_1B_7(
+    .a                              ( a[21]                         ),
+    .b                              ( a[22]                         ),
+    .cin                            ( a[23]                         ),
+    .cout                           ( c[7]                          ),
+    .sum                            ( s[7]                          )
+);
+ysyx_22041752_fadder_1b U_YSYX_22041752_FADDER_1B_8(
+    .a                              ( a[24]                         ),
+    .b                              ( a[25]                         ),
+    .cin                            ( a[26]                         ),
+    .cout                           ( c[8]                          ),
+    .sum                            ( s[8]                          )
+);
+ysyx_22041752_fadder_1b U_YSYX_22041752_FADDER_1B_9(
+    .a                              ( a[27]                         ),
+    .b                              ( a[28]                         ),
+    .cin                            ( a[29]                         ),
+    .cout                           ( c[9]                          ),
+    .sum                            ( s[9]                          )
+);
+ysyx_22041752_fadder_1b U_YSYX_22041752_FADDER_1B_10(
+    .a                              ( a[30]                         ),
+    .b                              ( a[31]                         ),
+    .cin                            ( a[32]                         ),
+    .cout                           ( c[10]                         ),
+    .sum                            ( s[10]                         )
+);
+ysyx_22041752_fadder_1b U_YSYX_22041752_FADDER_1B_11(
+    .a                              ( cin[0]                        ),
+    .b                              ( cin[1]                        ),
+    .cin                            ( cin[2]                        ),
+    .cout                           ( c[11]                         ),
+    .sum                            ( s[11]                         )
+);
+ysyx_22041752_fadder_1b U_YSYX_22041752_FADDER_1B_12(
+    .a                              ( cin[3]                        ),
+    .b                              ( cin[4]                        ),
+    .cin                            ( cin[5]                        ),
+    .cout                           ( c[12]                         ),
+    .sum                            ( s[12]                         )
+);
+ysyx_22041752_fadder_1b U_YSYX_22041752_FADDER_1B_13(
+    .a                              ( cin[6]                        ),
+    .b                              ( cin[7]                        ),
+    .cin                            ( cin[8]                        ),
+    .cout                           ( c[13]                         ),
+    .sum                            ( s[13]                         )
+);
+ysyx_22041752_fadder_1b U_YSYX_22041752_FADDER_1B_14(
+    .a                              ( cin[9]                        ),
+    .b                              ( cin[10]                       ),
+    .cin                            ( cin[11]                       ),
+    .cout                           ( c[14]                         ),
+    .sum                            ( s[14]                         )
+);
+ysyx_22041752_fadder_1b U_YSYX_22041752_FADDER_1B_15(
+    .a                              ( cin[12]                       ),
+    .b                              ( cin[13]                       ),
+    .cin                            ( cin[14]                       ),
+    .cout                           ( c[15]                         ),
+    .sum                            ( s[15]                         )
+);
+ysyx_22041752_fadder_1b U_YSYX_22041752_FADDER_1B_16(
+    .a                              ( cin[15]                       ),
+    .b                              ( cin[16]                       ),
+    .cin                            ( cin[17]                       ),
+    .cout                           ( c[16]                         ),
+    .sum                            ( s[16]                         )
+);
+ysyx_22041752_fadder_1b U_YSYX_22041752_FADDER_1B_17(
+    .a                              ( cin[18]                       ),
+    .b                              ( cin[19]                       ),
+    .cin                            ( cin[20]                       ),
+    .cout                           ( c[17]                         ),
+    .sum                            ( s[17]                         )
+);
+ysyx_22041752_fadder_1b U_YSYX_22041752_FADDER_1B_18(
+    .a                              ( cin[21]                       ),
+    .b                              ( cin[22]                       ),
+    .cin                            ( cin[23]                       ),
+    .cout                           ( c[18]                         ),
+    .sum                            ( s[18]                         )
+);
+ysyx_22041752_fadder_1b U_YSYX_22041752_FADDER_1B_19(
+    .a                              ( cin[24]                       ),
+    .b                              ( cin[25]                       ),
+    .cin                            ( cin[26]                       ),
+    .cout                           ( c[19]                         ),
+    .sum                            ( s[19]                         )
+);
+ysyx_22041752_fadder_1b U_YSYX_22041752_FADDER_1B_20(
+    .a                              ( cin[27]                       ),
+    .b                              ( cin[28]                       ),
+    .cin                            ( cin[29]                       ),
+    .cout                           ( c[20]                         ),
+    .sum                            ( s[20]                         )
+);
+
+/*===================================================================*/
+ysyx_22041752_fadder_1b U_YSYX_22041752_FADDER_1B_21(
+    .a                              ( s[0]                          ),
+    .b                              ( s[1]                          ),
+    .cin                            ( s[2]                          ),
+    .cout                           ( c[21]                         ),
+    .sum                            ( s[21]                         )
+);
+ysyx_22041752_fadder_1b U_YSYX_22041752_FADDER_1B_22(
+    .a                              ( s[3]                          ),
+    .b                              ( s[4]                          ),
+    .cin                            ( s[5]                          ),
+    .cout                           ( c[22]                         ),
+    .sum                            ( s[22]                         )
+);
+ysyx_22041752_fadder_1b U_YSYX_22041752_FADDER_1B_23(
+    .a                              ( s[6]                          ),
+    .b                              ( s[7]                          ),
+    .cin                            ( s[8]                          ),
+    .cout                           ( c[23]                         ),
+    .sum                            ( s[23]                         )
+);
+ysyx_22041752_fadder_1b U_YSYX_22041752_FADDER_1B_24(
+    .a                              ( s[9]                          ),
+    .b                              ( s[10]                         ),
+    .cin                            ( s[11]                         ),
+    .cout                           ( c[24]                         ),
+    .sum                            ( s[24]                         )
+);
+ysyx_22041752_fadder_1b U_YSYX_22041752_FADDER_1B_25(
+    .a                              ( s[12]                         ),
+    .b                              ( s[13]                         ),
+    .cin                            ( s[14]                         ),
+    .cout                           ( c[25]                         ),
+    .sum                            ( s[25]                         )
+);
+ysyx_22041752_fadder_1b U_YSYX_22041752_FADDER_1B_26(
+    .a                              ( s[15]                         ),
+    .b                              ( s[16]                         ),
+    .cin                            ( s[17]                         ),
+    .cout                           ( c[26]                         ),
+    .sum                            ( s[26]                         )
+);
+ysyx_22041752_fadder_1b U_YSYX_22041752_FADDER_1B_27(
+    .a                              ( s[18]                         ),
+    .b                              ( s[19]                         ),
+    .cin                            ( s[20]                       ),
+    .cout                           ( c[27]                         ),
+    .sum                            ( s[27]                         )
+);
+
+/*=================================================================*/
+ysyx_22041752_fadder_1b U_YSYX_22041752_FADDER_1B_28(
+    .a                              ( s[21]                         ),
+    .b                              ( s[22]                         ),
+    .cin                            ( s[23]                         ),
+    .cout                           ( c[28]                         ),
+    .sum                            ( s[28]                         )
+);
+ysyx_22041752_fadder_1b U_YSYX_22041752_FADDER_1B_29(
+    .a                              ( s[24]                         ),
+    .b                              ( s[25]                         ),
+    .cin                            ( s[26]                         ),
+    .cout                           ( c[29]                         ),
+    .sum                            ( s[29]                         )
+);
+
+/*=================================================================*/
+ysyx_22041752_fadder_1b U_YSYX_22041752_FADDER_1B_30(
+    .a                              ( s[27]                         ),
+    .b                              ( s[28]                         ),
+    .cin                            ( s[29]                         ),
+    .cout                           ( c[30]                         ),
+    .sum                            ( s[30]                         )
+);
+
+assign sum = s[BIT_WIDTH-3];
+assign {saved_c, cout} = c;
+
+endmodule
+// +FHDR----------------------------------------------------------------------------
+//                 Copyright (c) 2024 
+//                       ALL RIGHTS RESERVED
+// ---------------------------------------------------------------------------------
+// Filename      : ysyx_22041752_wallace_array.v
+// Author        : Cw
+// Created On    : 2024-03-25 17:05
+// Last Modified : 2024-03-25 19:30
+// ---------------------------------------------------------------------------------
+// Description   : 
+//
+//
+// -FHDR----------------------------------------------------------------------------
+
+module ysyx_22041752_wallace_array #(
+    parameter NUM   = 16,
+    parameter START = 0 ,
+    parameter END   = START+NUM-1
+)(
+    input  [`ysyx_22041752_RF_DATA_WD/2:0]   switched_prdt [END:START] ,
+    input  [`ysyx_22041752_RF_DATA_WD/2-3:0] cin                       ,
+    output [`ysyx_22041752_RF_DATA_WD/2-3:0] cout                      ,
+    output [END:START]                       sum                       ,
+    output [END:START]                       saved_c   
+);
+    
+wire [`ysyx_22041752_RF_DATA_WD/2-3:0] c [END:START];
+
+genvar i;
+ysyx_22041752_wallace_tree #(
+    .BIT_WIDTH                      ( `ysyx_22041752_RF_DATA_WD/2+1            ))
+U_YSYX_22041752_WALLACE_TREE(
+    .a                              ( switched_prdt[START]                     ),
+    .cin                            ( cin                                      ),
+    .cout                           ( c[START]                                 ),
+    .sum                            ( sum[START]                               ),
+    .saved_c                        ( saved_c[START]                           )
+);
 generate
-    for(i = 0; i < `ysyx_22041752_RF_NUM; i=i+1) begin
-        :DPI_C_REGS
-        assign dpi_regs[i] = regs[i];
+    for (i = START+1; i <= END; i = i + 1) begin
+       :WALLACE_ARRAY
+        ysyx_22041752_wallace_tree #(
+            .BIT_WIDTH                      ( `ysyx_22041752_RF_DATA_WD/2+1 ))
+        U_YSYX_22041752_WALLACE_TREE(
+            .a                              ( switched_prdt[i]              ),
+            .cin                            ( c[i-1]                        ),
+            .cout                           ( c[i]                          ),
+            .sum                            ( sum[i]                        ),
+            .saved_c                        ( saved_c[i]                    )
+        );
     end
 endgenerate
+
+assign cout = c[END];
+
+endmodule
+// +FHDR----------------------------------------------------------------------------
+//                 Copyright (c) 2022 
+//                       ALL RIGHTS RESERVED
+// ---------------------------------------------------------------------------------
+// Filename      : ysyx_22041752_mul.v
+// Author        : Cw
+// Created On    : 2022-11-29 16:07
+// Last Modified : 2024-03-27 18:28
+// ---------------------------------------------------------------------------------
+// Description   : 
+//
+//
+// -FHDR----------------------------------------------------------------------------
+
+module ysyx_22041752_mul(
+`ifdef REAL_MUL
+    input                                   clk           ,
+    input                                   reset         ,
+    input                                   flush         ,
+    input                                   count_en      ,
+`endif
+    input                                   mul_u         ,
+    input                                   mul_su        ,
+    input                                   mul_h         ,
+    input                                   mul_valid     ,
+    input  [`ysyx_22041752_RF_DATA_WD-1:0]  multiplicand  ,
+    input  [`ysyx_22041752_RF_DATA_WD-1:0]  multiplier    ,
+    output [`ysyx_22041752_RF_DATA_WD-1:0]  product       ,
+    output                                  out_valid
+);
+`ifdef REAL_MUL
+`ifdef FAST_MUL
+reg [$clog2(`SPLIT):0] count;
+always @(posedge clk) begin
+    if (reset || flush|| out_valid) begin
+        count <= {$clog2(`SPLIT)+1{1'b1}};
+    end
+    else if (count_en) begin
+        count <= count + 1;
+    end
+end
+
+wire [2*`ysyx_22041752_RF_DATA_WD-1:0]  multiplicand_ext ; 
+wire [`ysyx_22041752_RF_DATA_WD+1:-1]   multiplier_ext   ;
+assign multiplicand_ext = {{`ysyx_22041752_RF_DATA_WD{!mul_u & multiplicand[`ysyx_22041752_RF_DATA_WD-1]}}, multiplicand};
+assign multiplier_ext   = {{2{!mul_u && !mul_su & multiplier[`ysyx_22041752_RF_DATA_WD-1]}}, multiplier, 1'b0};
+
+wire [2*`ysyx_22041752_RF_DATA_WD-1:0] booth_o [`ysyx_22041752_RF_DATA_WD/2:0];
+wire [`ysyx_22041752_RF_DATA_WD/2:0]   booth_c;
+wire [`ysyx_22041752_RF_DATA_WD/2:0]   switched_prdt [2*`ysyx_22041752_RF_DATA_WD-1:0];
+
+genvar i;
+generate
+    for (i = 0; i <=(`ysyx_22041752_RF_DATA_WD/2); i=i+1) begin
+        :BOOTH2
+        ysyx_22041752_booth2_enc #(
+            .BIT_WIDTH_X                    ( `ysyx_22041752_RF_DATA_WD    ))
+        U_YSYX_22041752_BOOTH2_ENC(
+            .x                              ( multiplicand_ext<<(2*i)       ),
+            .y                              ( multiplier_ext[2*i+1:2*i-1]   ),
+            .o                              ( booth_o[i]                    ),
+            .c                              ( booth_c[i]                    )
+        );
+    end
+endgenerate
+
+ysyx_22041752_switch #(
+    .DW                             ( 2*`ysyx_22041752_RF_DATA_WD     ),
+    .NUM                            ( `ysyx_22041752_RF_DATA_WD/2 + 1 ))
+U_YSYX_22041752_BOOTH2_SWITCH_0(
+    .in                             ( booth_o                         ),
+    .o                              ( switched_prdt                   )
+);
+
+wire [2*`ysyx_22041752_RF_DATA_WD-1:0]        sum     ;
+wire [2*`ysyx_22041752_RF_DATA_WD-1:0]        saved_c ;
+wire [`ysyx_22041752_RF_DATA_WD/2-3:0]        cin     ;
+wire [`ysyx_22041752_RF_DATA_WD/2-3:0]        cout    ;
+wire [2*`ysyx_22041752_RF_DATA_WD/`SPLIT-1:0] s       ;
+wire [2*`ysyx_22041752_RF_DATA_WD/`SPLIT-1:0] c       ;
+reg  [2*`ysyx_22041752_RF_DATA_WD/`SPLIT-1:0] s_r[`SPLIT-1:0] ;
+reg  [2*`ysyx_22041752_RF_DATA_WD/`SPLIT-1:0] c_r[`SPLIT-1:0] ;
+reg  [`ysyx_22041752_RF_DATA_WD/2-3:0]        cout_r  ;
+wire [`ysyx_22041752_RF_DATA_WD/2:0]          prdt [2*`ysyx_22041752_RF_DATA_WD/`SPLIT-1:0];
+
+
+reg [`ysyx_22041752_RF_DATA_WD/2:0]   booth_c_r;
+reg [`ysyx_22041752_RF_DATA_WD/2:0]   switched_prdt_r [2*`ysyx_22041752_RF_DATA_WD-1:0];
+always @(posedge clk) begin
+    if (reset) begin
+        booth_c_r <= 0;
+    end
+    else begin
+        booth_c_r <= booth_c;
+    end
+end
+generate
+    for (i = 0; i < 2*`ysyx_22041752_RF_DATA_WD; i=i+1) begin
+        :REG_SWITCH_PRDT
+        always @(posedge clk) begin
+            if (reset) begin
+                switched_prdt_r[i] <= 0;
+            end
+            else begin
+                switched_prdt_r[i] <= switched_prdt[i];
+            end
+        end
+    end
+endgenerate
+
+generate
+    for (i = 0; i < 2*`ysyx_22041752_RF_DATA_WD/`SPLIT; i=i+1) begin
+        :PRDT
+        assign prdt[i] = switched_prdt_r[2*`ysyx_22041752_RF_DATA_WD/`SPLIT*count + i];
+    end
+endgenerate
+assign cin = count==0 ? booth_c_r[`ysyx_22041752_RF_DATA_WD/2-3:0] : cout_r;
+
+generate
+    for (i = 0; i < `SPLIT; i=i+1) begin
+        :REG_S_C
+        always @(posedge clk) begin
+            if (reset) begin
+                s_r[i] <= 0;
+                c_r[i] <= 0;
+            end
+            else if(count==i) begin
+                s_r[i] <= s;
+                c_r[i] <= c;
+            end
+        end
+    end
+endgenerate
+always @(posedge clk) begin
+    if (reset) begin
+        cout_r <= 0;
+    end
+    else begin
+        cout_r <= cout;
+    end
+end
+
+ysyx_22041752_wallace_array #(
+    .NUM                            ( 2*`ysyx_22041752_RF_DATA_WD/`SPLIT               ),
+    .START                          ( 0                                                ))
+U_YSYX_22041752_WALLACE_ARRAY_0(
+    .switched_prdt                  ( prdt                                             ),
+    .cin                            ( cin                                              ),
+    .cout                           ( cout                                             ),
+    .sum                            ( s                                                ),
+    .saved_c                        ( c                                                )
+);
+
+generate
+    for (i = 0; i < `SPLIT; i=i+1) begin
+        :SUM_AND_CARRY
+        assign sum[2*`ysyx_22041752_RF_DATA_WD/`SPLIT*i+2*`ysyx_22041752_RF_DATA_WD/`SPLIT-1:2*`ysyx_22041752_RF_DATA_WD/`SPLIT*i] = s_r[i];
+        assign saved_c[2*`ysyx_22041752_RF_DATA_WD/`SPLIT*i+2*`ysyx_22041752_RF_DATA_WD/`SPLIT-1:2*`ysyx_22041752_RF_DATA_WD/`SPLIT*i] = c_r[i];
+    end
+endgenerate
+
+
+wire [2*`ysyx_22041752_RF_DATA_WD-1:0] carry = {saved_c[2*`ysyx_22041752_RF_DATA_WD-2:0],booth_c_r[`ysyx_22041752_RF_DATA_WD/2-2]};
+
+wire [2*`ysyx_22041752_RF_DATA_WD-1:0] mul_res = sum + carry + {127'b0, booth_c_r[`ysyx_22041752_RF_DATA_WD/2-1]};
+
+assign out_valid = mul_valid && 
+                  (count==`SPLIT || (multiplicand==0) || (multiplier==0));
+assign product = ((multiplicand==0) || (multiplier==0)) ? `ysyx_22041752_RF_DATA_WD'b0 :
+                   mul_h ? mul_res[2*`ysyx_22041752_RF_DATA_WD-1:`ysyx_22041752_RF_DATA_WD] 
+                         : mul_res[`ysyx_22041752_RF_DATA_WD-1:0];
+
+
+
+
+`else
+reg [6:0] count;
+always @(posedge clk) begin
+    if (reset || flush|| out_valid) begin
+        count <= 0;
+    end
+    else if (count_en) begin
+        count <= count + 1;
+    end
+end
+
+reg  [2*`ysyx_22041752_RF_DATA_WD-1:0] pdt_r;
+wire [2*`ysyx_22041752_RF_DATA_WD-1:0] up_pdt;
+always @(posedge clk) begin
+    if (reset) begin
+        pdt_r <= 0;
+    end
+    else if (count_en && (count==0)) begin
+        pdt_r <= {64'b0, multiplier};
+    end
+    else begin
+        pdt_r <= up_pdt;
+    end
+end
+
+wire adder_cout;
+wire [`ysyx_22041752_RF_DATA_WD-1:0] adder_res;
+wire sub_en = !mul_su && !mul_u && count==`ysyx_22041752_RF_DATA_WD;
+
+
+assign up_pdt = mul_u ? pdt_r[0] ? {adder_cout, adder_res, pdt_r[`ysyx_22041752_RF_DATA_WD-1:1]} 
+                                 : {1'b0, pdt_r[2*`ysyx_22041752_RF_DATA_WD-1:`ysyx_22041752_RF_DATA_WD], pdt_r[`ysyx_22041752_RF_DATA_WD-1:1]}
+                      :
+                        pdt_r[0] ? {adder_res[`ysyx_22041752_RF_DATA_WD-1], adder_res, pdt_r[`ysyx_22041752_RF_DATA_WD-1:1]} 
+                                 : {pdt_r[2*`ysyx_22041752_RF_DATA_WD-1], pdt_r[2*`ysyx_22041752_RF_DATA_WD-1:`ysyx_22041752_RF_DATA_WD], pdt_r[`ysyx_22041752_RF_DATA_WD-1:1]};
+
+ysyx_22041752_aser #(.WIDTH (64))
+U_YSYX_22041752_ASER_0(
+    .a                              ( pdt_r[2*`ysyx_22041752_RF_DATA_WD-1:`ysyx_22041752_RF_DATA_WD] ), 
+    .b                              ( multiplicand                       ),
+    .sub                            ( sub_en                             ),
+    .cout                           ( adder_cout                         ),
+    .result                         ( adder_res                          )
+);
+
+assign out_valid = mul_valid && ((count==`ysyx_22041752_RF_DATA_WD+1) ||
+                   (multiplicand==0) || (multiplier==0));
+
+assign product = ((multiplicand==0) || (multiplier==0)) ? `ysyx_22041752_RF_DATA_WD'b0 : 
+                 mul_h ? pdt_r[2*`ysyx_22041752_RF_DATA_WD-1:`ysyx_22041752_RF_DATA_WD]:
+                 pdt_r[`ysyx_22041752_RF_DATA_WD-1:0] ;
+
+`endif
+/**************************************************************************/
+/**************************************************************************/
+/**************************************************************************/
+`else
+
+wire [`ysyx_22041752_RF_DATA_WD-1:0] not_p1_x = ~multiplicand+1;
+wire [`ysyx_22041752_RF_DATA_WD-1:0] not_p1_y = ~multiplier+1;
+
+wire [`ysyx_22041752_RF_DATA_WD-1:0] src1 = !mul_u && multiplicand[`ysyx_22041752_RF_DATA_WD-1] ? not_p1_x : multiplicand;
+wire [`ysyx_22041752_RF_DATA_WD-1:0] src2 = !(mul_u|mul_su) && multiplier[`ysyx_22041752_RF_DATA_WD-1] ? not_p1_y : multiplier;
+
+wire [2*`ysyx_22041752_RF_DATA_WD-1:0] r_abs = src1 * src2;
+wire [2*`ysyx_22041752_RF_DATA_WD-1:0] r_abs_not_p1 = ~r_abs + 1;
+
+assign out_valid = mul_valid; 
+
+assign product = !mul_u && !mul_su && (multiplicand[`ysyx_22041752_RF_DATA_WD-1] ^ multiplier[`ysyx_22041752_RF_DATA_WD-1]) ?
+                  mul_h ? r_abs_not_p1[2*`ysyx_22041752_RF_DATA_WD-1:`ysyx_22041752_RF_DATA_WD] :
+                          r_abs_not_p1[`ysyx_22041752_RF_DATA_WD-1:0]  
+                                                                                                                            :
+                  mul_su && multiplicand[`ysyx_22041752_RF_DATA_WD-1]                                                       ?
+                  mul_h ? r_abs_not_p1[2*`ysyx_22041752_RF_DATA_WD-1:`ysyx_22041752_RF_DATA_WD] :
+                          r_abs_not_p1[`ysyx_22041752_RF_DATA_WD-1:0]  
+                                                                                                                            :
+                  mul_h ? r_abs[2*`ysyx_22041752_RF_DATA_WD-1:`ysyx_22041752_RF_DATA_WD] :
+                          r_abs[`ysyx_22041752_RF_DATA_WD-1:0];  
+
 `endif
 
 endmodule
@@ -1592,10 +1874,412 @@ endmodule
 //                 Copyright (c) 2022 
 //                       ALL RIGHTS RESERVED
 // ---------------------------------------------------------------------------------
+// Filename      : ysyx_22041752_diver.v
+// Author        : Cw
+// Created On    : 2022-12-14 14:01
+// Last Modified : 2024-03-22 14:28
+// ---------------------------------------------------------------------------------
+// Description   : 
+//
+//
+// -FHDR----------------------------------------------------------------------------
+
+module ysyx_22041752_diver (
+`ifdef REAL_DIV
+    input                                       clk        ,
+    input                                       reset      ,
+    input                                       flush      ,
+    input                                       count_en   ,
+`endif
+    input  [`ysyx_22041752_RF_DATA_WD-1:0]      dividend   ,
+    input  [`ysyx_22041752_RF_DATA_WD-1:0]      divisor    ,
+    input                                       div_valid  ,
+    input                                       div_signed ,
+    output                                      out_valid  ,
+    output [`ysyx_22041752_RF_DATA_WD-1:0]      quotient   ,
+    output [`ysyx_22041752_RF_DATA_WD-1:0]      remainder
+);
+    
+`ifdef REAL_DIV
+reg [7:0] count;
+always @(posedge clk) begin
+    if(reset || flush || out_valid)
+        count <= 0;
+    else if (count_en)
+        count <= count + 1;
+end
+
+wire dividend_s  = div_signed & dividend[`ysyx_22041752_RF_DATA_WD-1];
+wire divisor_s   = div_signed & divisor[`ysyx_22041752_RF_DATA_WD-1];
+wire remainder_s = dividend_s;
+wire quotient_s  = div_signed & (dividend_s ^ divisor_s);
+
+wire [`ysyx_22041752_RF_DATA_WD-1:0]   dividend_abs       ;
+wire [`ysyx_22041752_RF_DATA_WD-1:0]   divisor_abs        ;
+wire [2*`ysyx_22041752_RF_DATA_WD-1:0] dividend_abs_128   = {64'b0, dividend_abs};
+wire [`ysyx_22041752_RF_DATA_WD:0]     divisor_abs_65     = {1'b0, divisor_abs};
+reg  [2*`ysyx_22041752_RF_DATA_WD-1:0] result_abs_buffer  ;
+
+//wire [`ysyx_22041752_RF_DATA_WD-1:0] not_p1_i_1 = out_valid ? result_abs_buffer[2*`ysyx_22041752_RF_DATA_WD-1:`ysyx_22041752_RF_DATA_WD] : dividend;
+//wire [`ysyx_22041752_RF_DATA_WD-1:0] not_p1_i_2 = out_valid ? result_abs_buffer[`ysyx_22041752_RF_DATA_WD-1:0] : divisor;
+wire [`ysyx_22041752_RF_DATA_WD-1:0] not_p1_o_1_0 ;
+wire [`ysyx_22041752_RF_DATA_WD-1:0] not_p1_o_1_1 ;
+wire [`ysyx_22041752_RF_DATA_WD-1:0] not_p1_o_2_0 ;
+wire [`ysyx_22041752_RF_DATA_WD-1:0] not_p1_o_2_1 ;
+
+wire cout00, cout01, cout10, cout11;
+
+ysyx_22041752_aser #(
+    .WIDTH                          ( 64                            ))
+U_ASER_0(
+    .a                              ( 64'd0                         ),
+    .b                              ( result_abs_buffer[2*`ysyx_22041752_RF_DATA_WD-1:`ysyx_22041752_RF_DATA_WD]),
+    .sub                            ( 1'b1                          ),
+    .cout                           ( cout00                        ),
+    .result                         ( not_p1_o_1_0                  )
+);
+ysyx_22041752_aser #(
+    .WIDTH                          ( 64                            ))
+U_ASER_1(
+    .a                              ( 64'd0                         ),
+    .b                              ( dividend                      ),
+    .sub                            ( 1'b1                          ),
+    .cout                           ( cout01                        ),
+    .result                         ( not_p1_o_1_1                  )
+);
+ysyx_22041752_aser #(
+    .WIDTH                          ( 64                            ))
+U_ASER_2(
+    .a                              ( 64'd0                         ),
+    .b                              ( result_abs_buffer[`ysyx_22041752_RF_DATA_WD-1:0] ),
+    .sub                            ( 1'b1                          ),
+    .cout                           ( cout10                        ),
+    .result                         ( not_p1_o_2_0                  )
+);
+ysyx_22041752_aser #(
+    .WIDTH                          ( 64                            ))
+U_ASER_3(
+    .a                              ( 64'd0                         ),
+    .b                              ( divisor                       ),
+    .sub                            ( 1'b1                          ),
+    .cout                           ( cout11                        ),
+    .result                         ( not_p1_o_2_1                  )
+);
+
+assign dividend_abs = dividend_s ? 
+                            out_valid ? not_p1_o_1_0 : 
+                                        not_p1_o_1_1
+                                 :
+                      dividend;
+
+assign divisor_abs  = divisor_s  ? 
+                            out_valid ? not_p1_o_2_0 : 
+                                        not_p1_o_2_1 
+                                 :
+                      divisor;
+
+wire cout2;
+wire [`ysyx_22041752_RF_DATA_WD:0]     sub_result;
+ysyx_22041752_aser #(
+    .WIDTH                          ( 64                                                                           ))
+U_ASER_4(
+    .a                              ( result_abs_buffer[2*`ysyx_22041752_RF_DATA_WD-2:`ysyx_22041752_RF_DATA_WD-1]  ),
+    .b                              ( divisor_abs_65[`ysyx_22041752_RF_DATA_WD-1:0]                                 ),
+    .sub                            ( 1'b1                                                                          ),
+    .cout                           ( cout2                                                                         ),
+    .result                         ( sub_result[`ysyx_22041752_RF_DATA_WD-1:0]                                     )
+);
+
+wire sub_result_MSB_0, sub_result_MSB_1;
+wire cout20, cout21;
+ysyx_22041752_fadder_1b U_YSYX_22041752_FADDER_1B_0(
+    .a                              ( result_abs_buffer[2*`ysyx_22041752_RF_DATA_WD-1]  ),
+    .b                              (~divisor_abs_65[`ysyx_22041752_RF_DATA_WD]         ),
+    .cin                            ( 1'b1                                              ),
+    .cout                           ( cout20                                            ),
+    .sum                            ( sub_result_MSB_0                                  )
+);
+ysyx_22041752_fadder_1b U_YSYX_22041752_FADDER_1B_1(
+    .a                              ( result_abs_buffer[2*`ysyx_22041752_RF_DATA_WD-1]  ),
+    .b                              (~divisor_abs_65[`ysyx_22041752_RF_DATA_WD]         ),
+    .cin                            ( 1'b0                                              ),
+    .cout                           ( cout21                                            ),
+    .sum                            ( sub_result_MSB_1                                  )
+);
+assign sub_result[`ysyx_22041752_RF_DATA_WD] = cout2 ? sub_result_MSB_0 : sub_result_MSB_1;
+
+wire [2*`ysyx_22041752_RF_DATA_WD-1:0] update_result = {(sub_result[`ysyx_22041752_RF_DATA_WD] ? result_abs_buffer[2*`ysyx_22041752_RF_DATA_WD-2:`ysyx_22041752_RF_DATA_WD-1] : 
+                                                                                                 sub_result[`ysyx_22041752_RF_DATA_WD-1:0]),
+                                                        result_abs_buffer[`ysyx_22041752_RF_DATA_WD-2:0],
+                                                        (sub_result[`ysyx_22041752_RF_DATA_WD] ? 1'b0 : 1'b1)};
+
+always @(posedge clk) begin
+    if (reset) begin
+        result_abs_buffer <= 0;
+    end
+    else if (count == 0)
+        result_abs_buffer <= dividend_abs_128;
+    else
+        result_abs_buffer <= update_result;
+end
+
+assign out_valid = div_valid && ((count == `ysyx_22041752_RF_DATA_WD+1)                                          || 
+                   divisor == 0                                                                                  || 
+                   (div_signed && (dividend == 64'h8000_0000_0000_0000) && (divisor == 64'hffff_ffff_ffff_ffff)));
+
+
+
+assign quotient = (divisor == 0) ? 64'hffff_ffff_ffff_ffff :
+                  (div_signed && (dividend == 64'h8000_0000_0000_0000) && (divisor == 64'hffff_ffff_ffff_ffff)) ? dividend :
+                  quotient_s ? not_p1_o_2_0 :
+                  result_abs_buffer[`ysyx_22041752_RF_DATA_WD-1:0];
+
+assign remainder= (divisor == 0) ? dividend :
+                  (div_signed && (dividend == 64'h8000_0000_0000_0000) && (divisor == 64'hffff_ffff_ffff_ffff)) ? {`ysyx_22041752_RF_DATA_WD{1'b0}} :
+                  remainder_s ? not_p1_o_1_0 :
+                  result_abs_buffer[2*`ysyx_22041752_RF_DATA_WD-1:`ysyx_22041752_RF_DATA_WD];
+
+
+/**************************************************************************************/
+/**************************************************************************************/
+/**************************************************************************************/
+`else
+
+wire dividend_s  = div_signed & dividend[`ysyx_22041752_RF_DATA_WD-1];
+wire divisor_s   = div_signed & divisor [`ysyx_22041752_RF_DATA_WD-1];
+wire remainder_s = dividend_s;
+wire quotient_s  = div_signed & (dividend_s ^ divisor_s);
+
+wire [`ysyx_22041752_RF_DATA_WD-1:0]   dividend_abs       ;
+wire [`ysyx_22041752_RF_DATA_WD-1:0]   divisor_abs        ;
+
+wire [`ysyx_22041752_RF_DATA_WD-1:0] not_p1_i_1 = dividend;
+wire [`ysyx_22041752_RF_DATA_WD-1:0] not_p1_i_2 = divisor;
+wire [`ysyx_22041752_RF_DATA_WD-1:0] not_p1_o_1 = ~not_p1_i_1 + 1;
+wire [`ysyx_22041752_RF_DATA_WD-1:0] not_p1_o_2 = ~not_p1_i_2 + 1;
+
+assign dividend_abs = dividend_s ? not_p1_o_1 : dividend;
+assign divisor_abs  = divisor_s  ? not_p1_o_2 : divisor;
+
+wire [`ysyx_22041752_RF_DATA_WD-1:0] quotient_abs  = dividend_abs / divisor_abs;
+wire [`ysyx_22041752_RF_DATA_WD-1:0] remainder_abs = dividend_abs % divisor_abs;
+
+assign out_valid = div_valid;
+
+
+assign quotient = (divisor == 0) ? 64'hffff_ffff_ffff_ffff : 
+                  (div_signed && (dividend == 64'h8000_0000_0000_0000) && (divisor == 64'hffff_ffff_ffff_ffff)) ? dividend :
+                  quotient_s ? ~quotient_abs + 1 :
+                  quotient_abs;
+
+assign remainder= (divisor == 0) ? dividend :
+                  (div_signed && (dividend == 64'h8000_0000_0000_0000) && (divisor == 64'hffff_ffff_ffff_ffff)) ? 0 :
+                  remainder_s ? ~remainder_abs + 1 :
+                  remainder_abs;
+
+`endif
+
+endmodule
+
+// +FHDR----------------------------------------------------------------------------
+//                 Copyright (c) 2022 
+//                       ALL RIGHTS RESERVED
+// ---------------------------------------------------------------------------------
+// Filename      : ysyx_22041752_alu.v
+// Author        : Cw
+// Created On    : 2022-11-19 18:06
+// Last Modified : 2024-03-27 16:27
+// ---------------------------------------------------------------------------------
+// Description   : 
+//
+//
+// -FHDR----------------------------------------------------------------------------
+module ysyx_22041752_alu(
+`ifdef REAL_DIV_MUL
+    input         clk         ,
+    input         reset       , 
+    input         flush       ,
+`ifdef REAL_MUL
+    input         mul_calc    ,
+`endif
+`ifdef REAL_DIV
+    input         div_calc    ,
+`endif
+`endif
+    input         mul_u        ,
+    input         mul_su       ,
+    input         div_u        , 
+    input         mul_h        ,
+    input         beq          ,  
+    input         bne          ,  
+    input         blt          ,  
+    input         bge          ,  
+    input         bltu         ,  
+    input         bgeu         ,  
+    input         op_mul       ,     
+    input         op_div       ,
+    input         op_rem       ,
+    input         op_add       ,
+    input         op_sub       ,
+    input         op_slt       ,
+    input         op_sltu      ,
+    input         op_and       ,
+    input         op_or        ,
+    input         op_xor       ,
+    input         op_sll       ,
+    input         op_srl       ,
+    input         op_sra       ,
+    input         res_sext     ,
+    input  [63:0] alu_src1     ,
+    input  [63:0] alu_src2     ,
+    output [63:0] alu_result   ,
+    output [63:0] mem_result   ,
+    output        div_out_valid,
+    output        mul_out_valid
+);
+
+wire [63:0] mul_result;
+
+wire [63:0] div_result   ;
+wire [63:0] rem_result   ;
+reg                                 div_calc_r     ; 
+reg [`ysyx_22041752_RF_DATA_WD-1:0] dividend_r     ; 
+reg [`ysyx_22041752_RF_DATA_WD-1:0] divisor_r      ; 
+reg                                 div_valid_r    ; 
+reg                                 div_signed_r   ; 
+always @(posedge clk) begin
+    if (reset) begin
+        div_calc_r      <= 1'b0;
+        dividend_r      <= `ysyx_22041752_RF_DATA_WD'b0;
+        divisor_r       <= `ysyx_22041752_RF_DATA_WD'b0;
+        div_valid_r     <= 1'b0;
+        div_signed_r    <= 1'b0;
+    end
+    else begin
+        div_calc_r      <= div_calc&&!div_out_valid; 
+        dividend_r      <= alu_src1;
+        divisor_r       <= alu_src2;
+        div_valid_r     <= op_div|op_rem;
+        div_signed_r    <=~div_u;
+    end
+end
+    
+wire [ 63:0] r_slt; 
+wire [ 63:0] r_and;
+wire [ 63:0] r_or ;
+wire [ 63:0] r_xor;
+wire [ 63:0] r_sll; 
+wire [ 63:0] r_srl; 
+wire [127:0] r_sra; 
+
+// 64-bit adder
+wire [63:0] adder_a;
+wire [63:0] adder_b;
+wire        adder_cin;
+wire [63:0] adder_result;
+wire        adder_cout;
+
+assign adder_a   = alu_src1;
+assign adder_b   = alu_src2;
+assign adder_cin = op_sub | op_slt | op_sltu | 
+                   beq    | bne    | bge     | bgeu | blt | bltu;
+ysyx_22041752_aser #(.WIDTH (64))
+U_ASER_0(
+    .a          ( adder_a      ),
+    .b          ( adder_b      ),
+    .sub        ( adder_cin    ),
+    .cout       ( adder_cout   ),
+    .result     ( adder_result )
+);
+
+// SLT result
+assign r_slt[63:1] = 63'b0;
+assign r_slt[0]    = op_sltu ? ~adder_cout : adder_result[63];
+
+// bitwise operation
+assign r_and = alu_src1 &  alu_src2;
+assign r_or  = alu_src1 |  alu_src2; 
+assign r_xor = alu_src1 ^  alu_src2; 
+assign r_sll = alu_src1 << alu_src2; 
+assign r_srl = alu_src1 >> alu_src2; 
+assign r_sra = (res_sext ? {{96{alu_src1[31]}}, alu_src1[31:0]} : {{64{alu_src1[63]}}, alu_src1}) >> alu_src2;
+
+
+wire rs1_eq_rs2 ;
+wire rs1_l_rs2  ;
+wire rs1u_l_rs2u;
+
+assign rs1u_l_rs2u=~adder_cout;
+assign rs1_l_rs2  = adder_result[63];
+assign rs1_eq_rs2 = alu_src1==alu_src2;
+
+
+wire [63:0] res;
+assign res = ({64{op_add|op_sub }}&{adder_result[63:0]})
+            |({64{op_slt|op_sltu}}&{r_slt       [63:0]})
+            |({64{op_and        }}&{r_and       [63:0]})
+            |({64{op_or         }}&{r_or        [63:0]})
+            |({64{op_xor        }}&{r_xor       [63:0]})
+            |({64{op_sll        }}&{r_sll       [63:0]})
+            |({64{op_srl        }}&{r_srl       [63:0]})
+            |({64{op_sra        }}&{r_sra       [63:0]})
+            |({64{op_mul        }}&{mul_result})
+            |({64{op_div        }}&{div_result})
+            |({64{op_rem        }}&{rem_result})
+            |({64{beq & rs1_eq_rs2}})
+            |({64{bne &!rs1_eq_rs2}})
+            |({64{blt & rs1_l_rs2}})
+            |({64{bge &!rs1_l_rs2}})
+            |({64{bltu& rs1u_l_rs2u}})
+            |({64{bgeu&!rs1u_l_rs2u}});
+assign alu_result = res_sext ? {{32{res[31]}}, res[31:0]} : res;
+
+assign mem_result = alu_src1+alu_src2;
+
+ysyx_22041752_mul U_MUL_0(
+`ifdef REAL_MUL
+    .clk            ( clk             ),
+    .reset          ( reset           ),
+    .flush          ( flush           ),
+    .count_en       ( mul_calc        ),
+`endif
+    .mul_u          ( mul_u           ),
+    .mul_su         ( mul_su          ),
+    .mul_h          ( mul_h           ),
+    .mul_valid      ( op_mul          ),
+    .multiplicand   ( alu_src1        ),
+    .multiplier     ( alu_src2        ),
+    .product        ( mul_result      ),
+    .out_valid      ( mul_out_valid   )
+);
+
+
+ysyx_22041752_diver U_DIVER_0(
+`ifdef REAL_DIV
+    .clk        ( clk                        ),
+    .reset      ( reset                      ),
+    .flush      ( flush                      ),
+    .count_en   ( div_calc_r&&!div_out_valid ),
+`endif
+    .dividend   ( dividend_r                 ),
+    .divisor    ( divisor_r                  ),
+    .div_valid  ( div_valid_r                ),
+    .div_signed ( div_signed_r               ),
+    .out_valid  ( div_out_valid              ),
+    .quotient   ( div_result                 ),
+    .remainder  ( rem_result                 )
+);
+
+
+endmodule
+// +FHDR----------------------------------------------------------------------------
+//                 Copyright (c) 2022 
+//                       ALL RIGHTS RESERVED
+// ---------------------------------------------------------------------------------
 // Filename      : ysyx_22041752_EXU.v
 // Author        : Cw
 // Created On    : 2022-11-19 16:16
-// Last Modified : 2023-07-24 12:11
+// Last Modified : 2024-03-27 16:27
 // ---------------------------------------------------------------------------------
 // Description   : 
 //
@@ -1625,10 +2309,12 @@ module ysyx_22041752_EXU(
 
     output                                         fence_i_o     ,
     input                                          fence_over    ,
+    output [`ysyx_22041752_PC_WD-1:0]              fence_over_pc ,
     output                                         flush         ,
     output [`ysyx_22041752_PC_WD-1:0]              flush_pc      ,
     input                                          int_t_i       , 
-    output                                         flush_pc_p4   ,
+    output                                         bjpre_pc_p4   ,
+    output [`ysyx_22041752_PC_WD-1:0]              bjpre_pc      ,
     output                                         bjpre_error   
 
 `ifdef DPI_C
@@ -1780,6 +2466,7 @@ assign {fence_i       ,
 wire [63:0] alu_src1   ;
 wire [63:0] alu_src2   ;
 wire [63:0] alu_result ;
+wire [63:0] es_result  ;
 
 assign es_to_ms_bus = {res_sext         ,  
                        res_zext         ,
@@ -1789,7 +2476,7 @@ assign es_to_ms_bus = {res_sext         ,
                        es_mem_we        ,
 					   es_rf_we         ,  
                        rd               ,  
-                       mul_done||div_done ? md_res_buf : alu_result       //,  
+                       mul_done||div_done ? md_res_buf : es_result //,  
                        //es_pc               
                       };
 
@@ -1799,7 +2486,6 @@ wire                            pre_error  ;
 wire [`ysyx_22041752_PC_WD-1:0] bj_addr    ;
 wire                            br_taken_real = alu_result[0];
 
-assign bjpre_error = pre_error && es_valid;
 ysyx_22041752_bjt_cal U_BJT_CAL_0(
     .jalr                           ( jalr                                ),
     .imm_i                          ( imm_i                               ),
@@ -1814,7 +2500,7 @@ ysyx_22041752_bjt_cal U_BJT_CAL_0(
     .bj_addr                        ( bj_addr                             )
 );
 
-wire        int_t_o  ;
+wire       int_t_o   ;
 reg  [1:0] expfsm_pre;
 wire [1:0] expfsm_nxt;
 parameter IDLE = 0;
@@ -1898,19 +2584,19 @@ assign csr_wdata = expfsm_pre == W_MEPC   ? {32'b0, es_pc} :
                    {64{!csrrs &&!csrrc &&!csri}}             & rs1_value  |
                    {64{!csrrs &&!csrrc && csri}} & {59'b0, imm_csr};
 
-assign flush       = (ecall||mret||int_t_o&&expfsm_pre==IDLE) && es_valid;
-assign flush_pc_p4 = bjpre_error && !(br_taken_real || jalr) || fence_over;
-assign flush_pc    = int_t_o&&expfsm_pre==IDLE ? csr_rdata[`ysyx_22041752_PC_WD-1:0]   :
-                     bjpre_error               ? br_taken_real||jalr ? bj_addr : es_pc :
-                     fence_over                ?                                 es_pc : 
-                     csr_rdata[`ysyx_22041752_PC_WD-1:0];
+assign fence_over_pc = es_pc; 
+assign flush         = (ecall||mret||int_t_o&&expfsm_pre==IDLE) && es_valid;
+assign flush_pc      = csr_rdata[`ysyx_22041752_PC_WD-1:0];   
+assign bjpre_error   = pre_error && es_valid;
+assign bjpre_pc      = br_taken_real||jalr ? bj_addr : es_pc;
+assign bjpre_pc_p4   = !(br_taken_real || jalr);
 
 assign alu_src1 = src_pc   ? {32'b0, es_pc} : 
                   src_0    ? 64'd0          :
                   res_sext && (op_sll || op_srl || op_sra) ? {32'b0,rs1_value[31:0]} :
                   rs1_value;
   
-assign alu_src2 = src_csr   ? csr_rdata :
+assign alu_src2 = /*src_csr   ? csr_rdata :*/
                   src_4     ? 64'd4 : 
                   src_imm_u ? {{32{imm_u[19]}},imm_u,12'b0} :
                   src_imm_i ? {{52{imm_i[11]}},imm_i} :
@@ -1995,6 +2681,7 @@ ysyx_22041752_alu U_ALU_0(
     .div_out_valid   ( div_out_valid  ),
     .mul_out_valid   ( mul_out_valid  )
 );
+assign es_result = src_csr ? csr_rdata : alu_result;
 
 assign es_addr_offset=data_addr[2:0];
 assign data_addr= mem_addr[31:0];
@@ -2028,42 +2715,25 @@ assign data_wen = es_mem_we && es_valid && es_mem_bytes == 2'b11 ? 8'hff:
 							/*es_addr_offset[2:0]== 3'b111 ?*/     8'h80:
 
                                                                    8'h00;
-reg [`ysyx_22041752_DATA_DATA_WD-1:0] shift_data;
-always @(*) begin
-    case (es_addr_offset)
-        3'b000: begin
-            shift_data = rs2_value;
-        end
-        3'b001: begin
-            shift_data = rs2_value << 8;
-        end
-        3'b010: begin
-            shift_data = rs2_value << 16;
-        end
-        3'b011: begin
-            shift_data = rs2_value << 24;
-        end
-        3'b100: begin
-            shift_data = rs2_value << 32;
-        end
-        3'b101: begin
-            shift_data = rs2_value << 40;
-        end
-        3'b110: begin
-            shift_data = rs2_value << 48;
-        end
-        default: begin
-            shift_data = rs2_value << 56;
-        end
-    endcase
-end
+
+wire [`ysyx_22041752_DATA_DATA_WD-1:0] shift_data;
+assign shift_data = (rs2_value    ) & {`ysyx_22041752_DATA_DATA_WD{es_addr_offset==3'b000}} | 
+                    (rs2_value<< 8) & {`ysyx_22041752_DATA_DATA_WD{es_addr_offset==3'b001}} |
+                    (rs2_value<<16) & {`ysyx_22041752_DATA_DATA_WD{es_addr_offset==3'b010}} |
+                    (rs2_value<<24) & {`ysyx_22041752_DATA_DATA_WD{es_addr_offset==3'b011}} |
+                    (rs2_value<<32) & {`ysyx_22041752_DATA_DATA_WD{es_addr_offset==3'b100}} |
+                    (rs2_value<<40) & {`ysyx_22041752_DATA_DATA_WD{es_addr_offset==3'b101}} |
+                    (rs2_value<<48) & {`ysyx_22041752_DATA_DATA_WD{es_addr_offset==3'b110}} |
+                    (rs2_value<<56) & {`ysyx_22041752_DATA_DATA_WD{es_addr_offset==3'b111}} ;
 
 assign data_wdata = shift_data;
 
 //forward_bus
 wire es_forward_valid;
 assign es_forward_valid = es_rf_we && es_valid;
-assign es_forward_bus = {es_mem_re&es_valid,es_forward_valid,alu_result,rd};
+assign es_forward_bus = {es_mem_re&es_valid,es_forward_valid,es_result,rd};
+
+
 `ifdef DPI_C
 assign es_exp = ecall && flush;
 assign es_mret  = mret && flush;
@@ -2088,693 +2758,10 @@ endmodule
 //                 Copyright (c) 2022 
 //                       ALL RIGHTS RESERVED
 // ---------------------------------------------------------------------------------
-// Filename      : ysyx_22041752_alu.v
-// Author        : Cw
-// Created On    : 2022-11-19 18:06
-// Last Modified : 2023-07-22 18:31
-// ---------------------------------------------------------------------------------
-// Description   : 
-//
-//
-// -FHDR----------------------------------------------------------------------------
-module ysyx_22041752_alu(
-`ifdef REAL_DIV_MUL
-    input         clk         ,
-    input         reset       , 
-    input         flush       ,
-`ifdef REAL_MUL
-    input         mul_calc    ,
-`endif
-`ifdef REAL_DIV
-    input         div_calc    ,
-`endif
-`endif
-    input         mul_u        ,
-    input         mul_su       ,
-    input         div_u        , 
-    input         mul_h        ,
-    input         beq          ,  
-    input         bne          ,  
-    input         blt          ,  
-    input         bge          ,  
-    input         bltu         ,  
-    input         bgeu         ,  
-    input         op_mul       ,     
-    input         op_div       ,
-    input         op_rem       ,
-    input         op_add       ,
-    input         op_sub       ,
-    input         op_slt       ,
-    input         op_sltu      ,
-    input         op_and       ,
-    input         op_or        ,
-    input         op_xor       ,
-    input         op_sll       ,
-    input         op_srl       ,
-    input         op_sra       ,
-    input         res_sext     ,
-    input  [63:0] alu_src1     ,
-    input  [63:0] alu_src2     ,
-    output [63:0] alu_result   ,
-    output [63:0] mem_result   ,
-    output        div_out_valid,
-    output        mul_out_valid
-);
-
-wire [63:0] mul_result;
-wire [63:0] div_result;
-wire [63:0] rem_result;
-    
-wire [ 63:0] r_slt; 
-wire [ 63:0] r_and;
-wire [ 63:0] r_or ;
-wire [ 63:0] r_xor;
-wire [ 63:0] r_sll; 
-wire [ 63:0] r_srl; 
-wire [127:0] r_sra; 
-
-// 64-bit adder
-wire [63:0] adder_a;
-wire [63:0] adder_b;
-wire        adder_cin;
-wire [63:0] adder_result;
-wire        adder_cout;
-
-assign adder_a   = alu_src1;
-assign adder_b   = alu_src2;
-assign adder_cin = op_sub | op_slt | op_sltu | 
-                   beq    | bne    | bge     | bgeu | blt | bltu;
-ysyx_22041752_aser #(.WIDTH (64))
-U_ASER_0(
-    .a          ( adder_a      ),
-    .b          ( adder_b      ),
-    .sub        ( adder_cin    ),
-    .cout       ( adder_cout   ),
-    .result     ( adder_result )
-);
-
-// SLT result
-assign r_slt[63:1] = 63'b0;
-assign r_slt[0]    = op_sltu ? ~adder_cout : adder_result[63];
-
-// bitwise operation
-assign r_and = alu_src1 &  alu_src2;
-assign r_or  = alu_src1 |  alu_src2; 
-assign r_xor = alu_src1 ^  alu_src2; 
-assign r_sll = alu_src1 << alu_src2; 
-assign r_srl = alu_src1 >> alu_src2; 
-assign r_sra = (res_sext ? {{96{alu_src1[31]}}, alu_src1[31:0]} : {{64{alu_src1[63]}}, alu_src1}) >> alu_src2;
-
-
-wire rs1_eq_rs2 ;
-wire rs1_l_rs2  ;
-wire rs1u_l_rs2u;
-
-assign rs1u_l_rs2u=~adder_cout;
-assign rs1_l_rs2  = adder_result[63];
-assign rs1_eq_rs2 = alu_src1==alu_src2;
-
-
-wire [63:0] res;
-assign res = ({64{op_add|op_sub }}&{adder_result[63:0]})
-            |({64{op_slt|op_sltu}}&{r_slt       [63:0]})
-            |({64{op_and        }}&{r_and       [63:0]})
-            |({64{op_or         }}&{r_or        [63:0]})
-            |({64{op_xor        }}&{r_xor       [63:0]})
-            |({64{op_sll        }}&{r_sll       [63:0]})
-            |({64{op_srl        }}&{r_srl       [63:0]})
-            |({64{op_sra        }}&{r_sra       [63:0]})
-            |({64{op_mul        }}&{mul_result})
-            |({64{op_div        }}&{div_result})
-            |({64{op_rem        }}&{rem_result})
-            |({64{beq & rs1_eq_rs2}})
-            |({64{bne &!rs1_eq_rs2}})
-            |({64{blt & rs1_l_rs2}})
-            |({64{bge &!rs1_l_rs2}})
-            |({64{bltu& rs1u_l_rs2u}})
-            |({64{bgeu&!rs1u_l_rs2u}});
-assign alu_result = res_sext ? {{32{res[31]}}, res[31:0]} : res;
-
-assign mem_result = adder_result;
-
-ysyx_22041752_mul U_MUL_0(
-`ifdef REAL_MUL
-    .clk            ( clk             ),
-    .reset          ( reset           ),
-    .flush          ( flush           ),
-    .count_en       ( mul_calc        ),
-`endif
-    .mul_u          ( mul_u           ),
-    .mul_su         ( mul_su          ),
-    .mul_h          ( mul_h           ),
-    .mul_valid      ( op_mul          ),
-    .multiplicand   ( alu_src1        ),
-    .multiplier     ( alu_src2        ),
-    .product        ( mul_result      ),
-    .out_valid      ( mul_out_valid   )
-);
-
-ysyx_22041752_diver U_DIVER_0(
-`ifdef REAL_DIV
-    .clk        ( clk              ),
-    .reset      ( reset            ),
-    .flush      ( flush            ),
-    .count_en   ( div_calc         ),
-`endif
-    .dividend   ( alu_src1         ),
-    .divisor    ( alu_src2         ),
-    .div_valid  ( op_div|op_rem    ),
-    .div_signed (~div_u            ),
-    .out_valid  ( div_out_valid    ),
-    .quotient   ( div_result       ),
-    .remainder  ( rem_result       )
-);
-
-endmodule
-// +FHDR----------------------------------------------------------------------------
-//                 Copyright (c) 2022 
-//                       ALL RIGHTS RESERVED
-// ---------------------------------------------------------------------------------
-// Filename      : ysyx_22041752_mul.v
-// Author        : Cw
-// Created On    : 2022-11-29 16:07
-// Last Modified : 2023-07-22 12:15
-// ---------------------------------------------------------------------------------
-// Description   : 
-//
-//
-// -FHDR----------------------------------------------------------------------------
-
-module ysyx_22041752_mul(
-`ifdef REAL_MUL
-    input                          clk           ,
-    input                          reset         ,
-    input                          flush         ,
-    input                          count_en      ,
-`endif
-    input                          mul_u         ,
-    input                          mul_su        ,
-    input                          mul_h         ,
-    input                          mul_valid     ,
-    input       [`ysyx_22041752_RF_DATA_WD-1:0]  multiplicand  ,
-    input       [`ysyx_22041752_RF_DATA_WD-1:0]  multiplier    ,
-    output reg  [`ysyx_22041752_RF_DATA_WD-1:0]  product       ,
-    output                                       out_valid
-);
-
-`ifdef REAL_MUL
-reg [6:0] count;
-always @(posedge clk) begin
-    if (reset || flush|| out_valid) begin
-        count <= 0;
-    end
-    else if (count_en) begin
-        count <= count + 1;
-    end
-end
-
-reg [2*`ysyx_22041752_RF_DATA_WD-1:0] pdt_r;
-reg [2*`ysyx_22041752_RF_DATA_WD-1:0] up_pdt;
-always @(posedge clk) begin
-    if (reset) begin
-        pdt_r <= 0;
-    end
-    else if (count_en && (count==0)) begin
-        pdt_r <= {64'b0, multiplier};
-    end
-    else begin
-        pdt_r <= up_pdt;
-    end
-end
-
-wire adder_cout;
-wire [`ysyx_22041752_RF_DATA_WD-1:0] adder_res;
-wire sub_en = !mul_su && !mul_u && count==`ysyx_22041752_RF_DATA_WD;
-
-always @(*) begin
-    if (mul_u) begin
-        if(pdt_r[0]) begin
-            up_pdt = {adder_cout, adder_res, pdt_r[`ysyx_22041752_RF_DATA_WD-1:1]};
-        end
-        else begin
-            up_pdt = {1'b0, pdt_r[2*`ysyx_22041752_RF_DATA_WD-1:`ysyx_22041752_RF_DATA_WD], pdt_r[`ysyx_22041752_RF_DATA_WD-1:1]};
-        end
-    end
-    else begin
-        if(pdt_r[0]) begin
-            up_pdt = {adder_res[`ysyx_22041752_RF_DATA_WD-1], adder_res, pdt_r[`ysyx_22041752_RF_DATA_WD-1:1]};
-        end
-        else begin
-            up_pdt = {pdt_r[2*`ysyx_22041752_RF_DATA_WD-1], pdt_r[2*`ysyx_22041752_RF_DATA_WD-1:`ysyx_22041752_RF_DATA_WD], pdt_r[`ysyx_22041752_RF_DATA_WD-1:1]};
-        end
-    end
-end
-
-ysyx_22041752_aser #(.WIDTH (64))
-U_YSYX_22041752_ASER_0(
-    .a                              ( pdt_r[2*`ysyx_22041752_RF_DATA_WD-1:`ysyx_22041752_RF_DATA_WD] ), 
-    .b                              ( multiplicand                       ),
-    .sub                            ( sub_en                             ),
-    .cout                           ( adder_cout                         ),
-    .result                         ( adder_res                          )
-);
-
-assign out_valid = mul_valid && ((count==`ysyx_22041752_RF_DATA_WD+1) ||
-                   (multiplicand==0) || (multiplier==0));
-
-always @(*) begin
-    if ((multiplicand==0) || (multiplier==0)) begin
-        product = 0;
-    end
-    else if (mul_h) begin
-        product = pdt_r[2*`ysyx_22041752_RF_DATA_WD-1:`ysyx_22041752_RF_DATA_WD];
-    end
-    else begin
-        product = pdt_r[`ysyx_22041752_RF_DATA_WD-1:0];
-    end
-end
-
-/**************************************************************************/
-/**************************************************************************/
-/**************************************************************************/
-`else
-
-wire [`ysyx_22041752_RF_DATA_WD-1:0] not_p1_x = ~multiplicand+1;
-wire [`ysyx_22041752_RF_DATA_WD-1:0] not_p1_y = ~multiplier+1;
-
-wire [`ysyx_22041752_RF_DATA_WD-1:0] src1 = !mul_u && multiplicand[`ysyx_22041752_RF_DATA_WD-1] ? not_p1_x : multiplicand;
-wire [`ysyx_22041752_RF_DATA_WD-1:0] src2 = !(mul_u|mul_su) && multiplier[`ysyx_22041752_RF_DATA_WD-1] ? not_p1_y : multiplier;
-
-wire [2*`ysyx_22041752_RF_DATA_WD-1:0] r_abs = src1 * src2;
-wire [2*`ysyx_22041752_RF_DATA_WD-1:0] r_abs_not_p1 = ~r_abs + 1;
-
-always @(*) begin
-    out_valid = mul_valid;
-end
-always @(*) begin
-    if (!mul_u && !mul_su && (multiplicand[`ysyx_22041752_RF_DATA_WD-1] ^ multiplier[`ysyx_22041752_RF_DATA_WD-1])) begin
-        if (mul_h) begin
-            product = r_abs_not_p1[2*`ysyx_22041752_RF_DATA_WD-1:`ysyx_22041752_RF_DATA_WD];
-        end
-        else begin
-            product = r_abs_not_p1[`ysyx_22041752_RF_DATA_WD-1:0];
-        end
-    end
-    else if (mul_su && multiplicand[`ysyx_22041752_RF_DATA_WD-1]) begin
-        if (mul_h) begin
-            product = r_abs_not_p1[2*`ysyx_22041752_RF_DATA_WD-1:`ysyx_22041752_RF_DATA_WD];
-        end
-        else begin
-            product = r_abs_not_p1[`ysyx_22041752_RF_DATA_WD-1:0];
-        end
-    end
-    else begin
-        if (mul_h) begin
-            product = r_abs[2*`ysyx_22041752_RF_DATA_WD-1:`ysyx_22041752_RF_DATA_WD];
-        end
-        else begin
-            product = r_abs[`ysyx_22041752_RF_DATA_WD-1:0];
-        end
-    end
-end
-`endif
-
-endmodule
-
-// +FHDR----------------------------------------------------------------------------
-//                 Copyright (c) 2022 
-//                       ALL RIGHTS RESERVED
-// ---------------------------------------------------------------------------------
-// Filename      : ysyx_22041752_diver.v
-// Author        : Cw
-// Created On    : 2022-12-14 14:01
-// Last Modified : 2023-07-22 18:34
-// ---------------------------------------------------------------------------------
-// Description   : 
-//
-//
-// -FHDR----------------------------------------------------------------------------
-
-module ysyx_22041752_diver (
-`ifdef REAL_DIV
-    input                                       clk        ,
-    input                                       reset      ,
-    input                                       flush      ,
-    input                                       count_en   ,
-`endif
-    input  [`ysyx_22041752_RF_DATA_WD-1:0]      dividend   ,
-    input  [`ysyx_22041752_RF_DATA_WD-1:0]      divisor    ,
-    input                                       div_valid  ,
-    input                                       div_signed ,
-    output                                      out_valid  ,
-    output reg  [`ysyx_22041752_RF_DATA_WD-1:0] quotient   ,
-    output reg  [`ysyx_22041752_RF_DATA_WD-1:0] remainder
-);
-    
-`ifdef REAL_DIV
-reg [7:0] count;
-always @(posedge clk) begin
-    if(reset || flush || out_valid)
-        count <= 0;
-    else if (count_en)
-        count <= count + 1;
-end
-
-wire dividend_s  = div_signed & dividend[`ysyx_22041752_RF_DATA_WD-1];
-wire divisor_s   = div_signed & divisor[`ysyx_22041752_RF_DATA_WD-1];
-wire remainder_s = dividend_s;
-wire quotient_s  = div_signed & (dividend_s ^ divisor_s);
-
-wire [`ysyx_22041752_RF_DATA_WD-1:0]   dividend_abs       ;
-wire [`ysyx_22041752_RF_DATA_WD-1:0]   divisor_abs        ;
-wire [2*`ysyx_22041752_RF_DATA_WD-1:0] dividend_abs_128   = {64'b0, dividend_abs};
-wire [`ysyx_22041752_RF_DATA_WD:0]     divisor_abs_65     = {1'b0, divisor_abs};
-reg  [2*`ysyx_22041752_RF_DATA_WD-1:0] result_abs_buffer  ;
-
-wire [`ysyx_22041752_RF_DATA_WD-1:0] not_p1_i_1 = out_valid ? result_abs_buffer[2*`ysyx_22041752_RF_DATA_WD-1:`ysyx_22041752_RF_DATA_WD] : dividend;
-wire [`ysyx_22041752_RF_DATA_WD-1:0] not_p1_i_2 = out_valid ? result_abs_buffer[`ysyx_22041752_RF_DATA_WD-1:0] : divisor;
-wire [`ysyx_22041752_RF_DATA_WD-1:0] not_p1_o_1 ;
-wire [`ysyx_22041752_RF_DATA_WD-1:0] not_p1_o_2 ;
-
-wire cout0, cout1, cout2;
-ysyx_22041752_aser #(
-    .WIDTH                          ( 64                            ))
-U_ASER_0(
-    .a                              ( 0                             ),
-    .b                              ( not_p1_i_1                    ),
-    .sub                            ( 1'b1                          ),
-    .cout                           ( cout0                         ),
-    .result                         ( not_p1_o_1                    )
-);
-ysyx_22041752_aser #(
-    .WIDTH                          ( 64                            ))
-U_ASER_1(
-    .a                              ( 0                             ),
-    .b                              ( not_p1_i_2                    ),
-    .sub                            ( 1'b1                          ),
-    .cout                           ( cout1                         ),
-    .result                         ( not_p1_o_2                    )
-);
-
-assign dividend_abs = dividend_s ? not_p1_o_1 : dividend;
-assign divisor_abs  = divisor_s  ? not_p1_o_2 : divisor;
-
-wire [`ysyx_22041752_RF_DATA_WD:0]     sub_result;
-ysyx_22041752_aser #(
-    .WIDTH                          ( 65                                                                           ))
-U_ASER_2(
-    .a                              ( result_abs_buffer[2*`ysyx_22041752_RF_DATA_WD-1:`ysyx_22041752_RF_DATA_WD-1]  ),
-    .b                              ( divisor_abs_65                                                                ),
-    .sub                            ( 1'b1                                                                          ),
-    .cout                           ( cout2                                                                         ),
-    .result                         ( sub_result                                                                    )
-);
-
-wire [2*`ysyx_22041752_RF_DATA_WD-1:0] update_result = {(sub_result[`ysyx_22041752_RF_DATA_WD] ? result_abs_buffer[2*`ysyx_22041752_RF_DATA_WD-2:`ysyx_22041752_RF_DATA_WD-1] : sub_result[`ysyx_22041752_RF_DATA_WD-1:0]),result_abs_buffer[`ysyx_22041752_RF_DATA_WD-2:0],(sub_result[`ysyx_22041752_RF_DATA_WD] ? 1'b0 : 1'b1)};
-
-always @(posedge clk) begin
-    if (reset) begin
-        result_abs_buffer <= 0;
-    end
-    else if (count == 0)
-        result_abs_buffer <= dividend_abs_128;
-    else
-        result_abs_buffer <= update_result;
-end
-
-assign out_valid = div_valid && ((count == `ysyx_22041752_RF_DATA_WD+1)                                          || 
-                   divisor == 0                                                                                  || 
-                   (div_signed && (dividend == 64'h8000_0000_0000_0000) && (divisor == 64'hffff_ffff_ffff_ffff)));
-
-always @(*) begin
-    if (divisor == 0) begin
-        quotient = 64'hffff_ffff_ffff_ffff;        
-    end
-    else if (div_signed && (dividend == 64'h8000_0000_0000_0000) && (divisor == 64'hffff_ffff_ffff_ffff)) begin
-        quotient = dividend;
-    end
-    else if (quotient_s) begin
-        quotient = not_p1_o_2;
-    end
-    else begin
-        quotient = result_abs_buffer[`ysyx_22041752_RF_DATA_WD-1:0];
-    end
-end
-
-always @(*) begin
-    if (divisor == 0) begin
-        remainder = dividend;        
-    end
-    else if (div_signed && (dividend == 64'h8000_0000_0000_0000) && (divisor == 64'hffff_ffff_ffff_ffff)) begin
-        remainder = 0;
-    end
-    else if (remainder_s) begin
-        remainder = not_p1_o_1;
-    end
-    else begin
-        remainder = result_abs_buffer[2*`ysyx_22041752_RF_DATA_WD-1:`ysyx_22041752_RF_DATA_WD];
-    end
-end
-
-/**************************************************************************************/
-/**************************************************************************************/
-/**************************************************************************************/
-`else
-
-wire dividend_s  = div_signed & dividend[`ysyx_22041752_RF_DATA_WD-1];
-wire divisor_s   = div_signed & divisor [`ysyx_22041752_RF_DATA_WD-1];
-wire remainder_s = dividend_s;
-wire quotient_s  = div_signed & (dividend_s ^ divisor_s);
-
-wire [`ysyx_22041752_RF_DATA_WD-1:0]   dividend_abs       ;
-wire [`ysyx_22041752_RF_DATA_WD-1:0]   divisor_abs        ;
-
-wire [`ysyx_22041752_RF_DATA_WD-1:0] not_p1_i_1 = dividend;
-wire [`ysyx_22041752_RF_DATA_WD-1:0] not_p1_i_2 = divisor;
-wire [`ysyx_22041752_RF_DATA_WD-1:0] not_p1_o_1 = ~not_p1_i_1 + 1;
-wire [`ysyx_22041752_RF_DATA_WD-1:0] not_p1_o_2 = ~not_p1_i_2 + 1;
-
-assign dividend_abs = dividend_s ? not_p1_o_1 : dividend;
-assign divisor_abs  = divisor_s  ? not_p1_o_2 : divisor;
-
-wire [`ysyx_22041752_RF_DATA_WD-1:0] quotient_abs  = dividend_abs / divisor_abs;
-wire [`ysyx_22041752_RF_DATA_WD-1:0] remainder_abs = dividend_abs % divisor_abs;
-
-assign out_valid = div_valid;
-
-always @(*) begin
-    if (divisor == 0) begin
-        quotient = 64'hffff_ffff_ffff_ffff;        
-    end
-    else if (div_signed && (dividend == 64'h8000_0000_0000_0000) && (divisor == 64'hffff_ffff_ffff_ffff)) begin
-        quotient = dividend;
-    end
-    else if (quotient_s) begin
-        quotient = ~quotient_abs + 1;
-    end
-    else begin
-        quotient = quotient_abs;
-    end
-end
-
-always @(*) begin
-    if (divisor == 0) begin
-        remainder = dividend;        
-    end
-    else if (div_signed && (dividend == 64'h8000_0000_0000_0000) && (divisor == 64'hffff_ffff_ffff_ffff)) begin
-        remainder = 0;
-    end
-    else if (remainder_s) begin
-        remainder = ~remainder_abs + 1;
-    end
-    else begin
-        remainder = remainder_abs;
-    end
-end
-`endif
-
-endmodule
-
-// +FHDR----------------------------------------------------------------------------
-//                 Copyright (c) 2023 
-//                       ALL RIGHTS RESERVED
-// ---------------------------------------------------------------------------------
-// Filename      : ysyx_22041752_csr.v
-// Author        : Cw
-// Created On    : 2023-03-28 22:12
-// Last Modified : 2023-07-20 16:41
-// ---------------------------------------------------------------------------------
-// Description   : 
-//
-//
-// -FHDR----------------------------------------------------------------------------
-module ysyx_22041752_csr (
-    input clk   ,
-    input reset ,
-
-    input         int_allowin,
-    input         mret       ,
-    input         wen        ,
-    input  [11:0] addr       ,
-    input  [63:0] wdata      ,
-    output [63:0] rdata      ,
-    
-    input  int_t_i           ,
-    output int_t_o           
-    `ifdef DPI_C
-        ,
-    output [63:0] dpi_csrs [3:0]
-`endif
-);
-    
-reg [63:0] mstatus;
-reg [63:0] mtvec  ;
-reg [63:0] mepc   ;
-reg [63:0] mcause ;
-reg [63:0] mie    ;
-
-reg [63:0] mip    ;
-
-assign rdata = {64{(addr == `ysyx_22041752_CSR_ADDR_MSTATUS)}} & mstatus |
-               {64{(addr == `ysyx_22041752_CSR_ADDR_MIE)}}     & mie     |
-               {64{(addr == `ysyx_22041752_CSR_ADDR_MIP)}}     & mip     |
-               {64{(addr == `ysyx_22041752_CSR_ADDR_MTVEC)}}   & mtvec   |
-               {64{(addr == `ysyx_22041752_CSR_ADDR_MEPC)}}    & mepc    |
-               {64{(addr == `ysyx_22041752_CSR_ADDR_MCAUSE)}}  & mcause  ;
-
-always @(posedge clk) begin
-    if (reset) begin
-        mstatus <= 64'ha00001800;
-    end
-    else if (int_t_o) begin
-        mstatus[7] <= mstatus[3]; //mpie <= mie 
-        mstatus[3] <= 1'b0; //mie <= 0
-    end
-    else if (wen && addr == `ysyx_22041752_CSR_ADDR_MSTATUS) begin
-        mstatus <= wdata;
-    end
-    else if (mret) begin
-        mstatus[7] <= 1'b1; //mpie <= 1
-        mstatus[3] <= mstatus[7]; //mie <= mpie
-    end
-end
-
-always @(posedge clk) begin
-    if (reset) begin
-        mtvec <= 0;
-    end
-    else if (wen && addr == `ysyx_22041752_CSR_ADDR_MTVEC) begin
-        mtvec <= wdata;
-    end
-end
-
-always @(posedge clk) begin
-    if (reset) begin
-        mepc <= 0;
-    end
-    else if (wen && addr == `ysyx_22041752_CSR_ADDR_MEPC) begin
-        mepc <= {wdata[63:1], 1'b0};
-    end
-end
-
-always @(posedge clk) begin
-    if (reset) begin
-        mcause <= 0;
-    end
-    else if (wen && addr == `ysyx_22041752_CSR_ADDR_MCAUSE) begin
-        mcause <= wdata;
-    end
-end
-
-always @(posedge clk) begin
-    if (reset) begin
-        mie <= 0;
-    end
-    else if (wen && addr == `ysyx_22041752_CSR_ADDR_MIE) begin
-        mie <= wdata;
-    end
-end
-
-always @(posedge clk) begin
-    if (reset) begin
-        mip <= 0;
-    end
-    else begin
-        mip[7] <= mstatus[3] & mie[7] & int_t_i;
-    end
-end
-
-assign int_t_o = int_allowin && mip[7];
-
-`ifdef DPI_C
-assign dpi_csrs[0] = mstatus; 
-assign dpi_csrs[1] = mtvec;   
-assign dpi_csrs[2] = mepc;    
-assign dpi_csrs[3] = mcause;  
-`endif
-
-endmodule
-
-// +FHDR----------------------------------------------------------------------------
-//                 Copyright (c) 2023 
-//                       ALL RIGHTS RESERVED
-// ---------------------------------------------------------------------------------
-// Filename      : ysyx_22041752_bjt_cal.v
-// Author        : Cw
-// Created On    : 2023-06-06 09:19
-// Last Modified : 2023-07-17 19:45
-// ---------------------------------------------------------------------------------
-// Description   : 
-//
-//
-// -FHDR----------------------------------------------------------------------------
-module ysyx_22041752_bjt_cal (
-    input                             jalr         ,
-    input  [11:0]                     imm_i        ,
-    input  [`ysyx_22041752_PC_WD-1:0] jalr_src1    ,
-    input                             branch       ,
-    input  [12:0]                     imm_b        ,
-    input  [`ysyx_22041752_PC_WD-1:0] es_pc        ,
-    input                             b_taken_real ,
-    input                             br_taken_pre ,
-    input  [`ysyx_22041752_PC_WD-1:0] jt_pre       ,
-
-    output                            pre_error    ,
-    output [`ysyx_22041752_PC_WD-1:0] bj_addr
-);
-
-wire [`ysyx_22041752_PC_WD-1:0] bt_a;
-wire [`ysyx_22041752_PC_WD-1:0] bt_b;
-wire count;    
-assign bt_a = jalr ? jalr_src1 : es_pc;
-
-assign bt_b = branch ? {{19{imm_b[12]}},imm_b} :
-                       {{20{imm_i[11]}},imm_i} ;
-
-ysyx_22041752_aser #(.WIDTH (32))
-U_ASER_1(
-    .a          ( bt_a      ),
-    .b          ( bt_b      ),
-    .sub        ( 1'b0      ),
-    .cout       ( count     ),
-    .result     ( bj_addr   )
-);
-
-wire br_err   = branch && (br_taken_pre!=b_taken_real);
-wire jalr_err = jalr   && (bj_addr     !=jt_pre);
-
-assign pre_error = br_err || jalr_err;
-
-endmodule
-
-// +FHDR----------------------------------------------------------------------------
-//                 Copyright (c) 2022 
-//                       ALL RIGHTS RESERVED
-// ---------------------------------------------------------------------------------
 // Filename      : ysyx_22041752_MEU.v
 // Author        : Cw
 // Created On    : 2022-11-21 15:40
-// Last Modified : 2023-07-17 19:23
+// Last Modified : 2024-03-13 23:06
 // ---------------------------------------------------------------------------------
 // Description   : 
 //
@@ -2868,35 +2855,17 @@ always @(posedge clk) begin
     end
 end
 
-reg [`ysyx_22041752_DATA_DATA_WD-1:0] shift_data;
-always @(*) begin
-    case (ms_addr_offset)
-        3'b000: begin
-            shift_data = data_rdata;
-        end
-        3'b001: begin
-            shift_data = data_rdata >> 8;
-        end
-        3'b010: begin
-            shift_data = data_rdata >> 16;
-        end
-        3'b011: begin
-            shift_data = data_rdata >> 24;
-        end
-        3'b100: begin
-            shift_data = data_rdata >> 32;
-        end
-        3'b101: begin
-            shift_data = data_rdata >> 40;
-        end
-        3'b110: begin
-            shift_data = data_rdata >> 48;
-        end
-        default: begin
-            shift_data = data_rdata >> 56;
-        end
-    endcase
-end
+
+wire [`ysyx_22041752_DATA_DATA_WD-1:0] shift_data;
+assign shift_data = (data_rdata    ) & {`ysyx_22041752_DATA_DATA_WD{ms_addr_offset==3'b000}} | 
+                    (data_rdata>> 8) & {`ysyx_22041752_DATA_DATA_WD{ms_addr_offset==3'b001}} |
+                    (data_rdata>>16) & {`ysyx_22041752_DATA_DATA_WD{ms_addr_offset==3'b010}} |
+                    (data_rdata>>24) & {`ysyx_22041752_DATA_DATA_WD{ms_addr_offset==3'b011}} |
+                    (data_rdata>>32) & {`ysyx_22041752_DATA_DATA_WD{ms_addr_offset==3'b100}} |
+                    (data_rdata>>40) & {`ysyx_22041752_DATA_DATA_WD{ms_addr_offset==3'b101}} |
+                    (data_rdata>>48) & {`ysyx_22041752_DATA_DATA_WD{ms_addr_offset==3'b110}} |
+                    (data_rdata>>56) & {`ysyx_22041752_DATA_DATA_WD{ms_addr_offset==3'b111}} ;
+
 
 assign mem_result = ms_mem_bytes==2'b00 && res_sext ? {{56{shift_data[ 7]}}, shift_data[ 7:0]} : 
                     ms_mem_bytes==2'b00 && res_zext ? {{56{          1'b0}}, shift_data[ 7:0]} :
@@ -2945,7 +2914,7 @@ endmodule
 // Filename      : ysyx_22041752_memspace.v
 // Author        : Cw
 // Created On    : 2023-07-01 16:22
-// Last Modified : 2023-07-17 22:34
+// Last Modified : 2024-03-20 09:55
 // ---------------------------------------------------------------------------------
 // Description   : 
 //
@@ -2992,7 +2961,8 @@ module ysyx_22041752_memspace (
     
 wire access_clint= ((es_data_addr_i == `ysyx_22041752_CLINT_BASE_ADDR+`ysyx_22041752_MTIME_OFFSET) || (es_data_addr_i == `ysyx_22041752_CLINT_BASE_ADDR+`ysyx_22041752_MTIMECMP_OFFSET));
 
-wire access_mem  = (es_data_addr_i >= `ysyx_22041752_MEM_BASEADDR) && (es_data_addr_i <= (`ysyx_22041752_MEM_END));
+wire access_mem  = (es_data_addr_i >= `ysyx_22041752_MEM_BASEADDR)   && (es_data_addr_i <= (`ysyx_22041752_MEM_END))        ||
+                   (es_data_addr_i >= `ysyx_22041752_SDRAM_BASEADDR);// && (es_data_addr_i <= (`ysyx_22041752_SDRAM_END))  ;
 
 wire access_io   = !(access_clint || access_mem);
 
@@ -3377,7 +3347,7 @@ endmodule
 // Filename      : ysyx_22041752_clint.v
 // Author        : Cw
 // Created On    : 2023-05-26 20:44
-// Last Modified : 2023-07-20 10:00
+// Last Modified : 2024-03-21 17:02
 // ---------------------------------------------------------------------------------
 // Description   : 
 //
@@ -3398,6 +3368,43 @@ module ysyx_22041752_clint (
 );
 
 reg [63:0] mtime;
+
+wire [31:0] h_result;
+wire        h_cout;
+wire [31:0] l_result;
+wire        l_cout;
+reg  [31:0] l_result_r;
+reg         l_cout_r;
+
+ysyx_22041752_aser #(
+    .WIDTH                          ( 32                            ))
+U_YSYX_22041752_ASER_0(
+    .a                              ( mtime[31:0]                   ),
+    .b                              ( 32'd1                         ),
+    .sub                            ( 1'b0                          ),
+    .cout                           ( l_cout                        ),
+    .result                         ( l_result                      )
+);
+always @(posedge clk) begin
+    if (reset) begin
+        l_result_r <= 32'd0;
+        l_cout_r   <= 1'b0;
+    end
+    else begin
+        l_result_r <= l_result;
+        l_cout_r   <= l_cout;
+    end
+end
+ysyx_22041752_aser #(
+    .WIDTH                          ( 32                        ))
+U_YSYX_22041752_ASER_1(
+    .a                              ( mtime[63:32]              ),
+    .b                              ( {31'd0, l_cout_r}         ),
+    .sub                            ( 1'b0                      ),
+    .cout                           ( h_cout                    ),
+    .result                         ( h_result                  )
+);
+
 always @(posedge clk) begin
     if (reset) begin
         mtime <= 0;
@@ -3406,7 +3413,7 @@ always @(posedge clk) begin
         mtime <= wdata;
     end
     else begin
-        mtime <= mtime+1;
+        mtime <= {h_result, l_result_r};
     end
 end
 
@@ -3452,7 +3459,7 @@ endmodule
 // Filename      : ysyx_22041752_axiarbiter.v
 // Author        : Cw
 // Created On    : 2023-05-27 17:57
-// Last Modified : 2023-07-24 12:15
+// Last Modified : 2024-03-19 10:04
 // ---------------------------------------------------------------------------------
 // Description   : 
 //
@@ -3513,10 +3520,34 @@ module ysyx_22041752_axiarbiter (
     output        bready  
 );
     
-reg inst_buf_split;
-reg [1:0] inst_buf_cnt;
-reg [`ysyx_22041752_DATA_DATA_WD-1:0] inst_buf;
-
+reg  [2:0] awfsm_pre;
+wire [2:0] awfsm_nxt;
+parameter AW_IDLE=0;
+parameter AW_WAIT=1;
+parameter AW_WAIT_W=2;
+parameter AW_WAIT_AW=3;
+parameter AW_OK=4;
+always @(posedge clk) begin
+    if (reset) begin
+        awfsm_pre <= AW_IDLE;
+    end
+    else begin
+        awfsm_pre <= awfsm_nxt;
+    end
+end
+reg  [1:0] bfsm_pre;
+wire [1:0] bfsm_nxt;
+parameter B_IDLE=0;
+parameter B_WAIT_STORE=1;
+parameter B_GET=2;
+always @(posedge clk) begin
+    if (reset) begin
+        bfsm_pre <= B_IDLE;
+    end
+    else begin
+        bfsm_pre <= bfsm_nxt;
+    end
+end
 reg  [3:0] arfsm_pre;
 wire [3:0] arfsm_nxt;
 parameter AR_IDLE         = 0;
@@ -3535,20 +3566,6 @@ always @(posedge clk) begin
         arfsm_pre <= arfsm_nxt;
     end
 end
-wire data_ren = data_en && data_wen==0;
-
-wire i_ar_split = (inst_addr >= `ysyx_22041752_FLASH_BASEADDR) && (inst_addr <= `ysyx_22041752_FLASH_END)  ;
-
-assign arfsm_nxt = (arfsm_pre==AR_IDLE || arfsm_pre==AR_FETCH_OK || arfsm_pre==AR_LOAD_OK) && inst_en  && i_ar_split ? AR_FETCH_LOW    :  
-                   (arfsm_pre==AR_IDLE || arfsm_pre==AR_FETCH_OK || arfsm_pre==AR_LOAD_OK) && inst_en  &&!i_ar_split ? AR_FETCH        :  
-                   (arfsm_pre==AR_IDLE || arfsm_pre==AR_FETCH_OK || arfsm_pre==AR_LOAD_OK) && data_ren               ? AR_LOAD         :
-                    arfsm_pre==AR_FETCH                                                                && arready    ? AR_FETCH_OK     :  
-                    arfsm_pre==AR_LOAD                                                                 && arready    ? AR_LOAD_OK      :
-                    arfsm_pre==AR_FETCH_LOW                                                            && arready    ? AR_FETCH_LOW_OK :  
-                    arfsm_pre==AR_FETCH_LOW_OK                                                                       ? AR_FETCH_HIGH   :  
-                    arfsm_pre==AR_FETCH_HIGH                                                           && arready    ? AR_FETCH_OK     :  
-                   (arfsm_pre==AR_FETCH_OK || arfsm_pre==AR_LOAD_OK)                                                 ? AR_IDLE         :
-                                                                                                                       arfsm_pre       ;
 reg  [3:0] rfsm_pre;
 wire [3:0] rfsm_nxt;
 parameter R_IDLE                = 0;
@@ -3568,17 +3585,35 @@ always @(posedge clk) begin
     end
 end
 
-assign rfsm_nxt = (rfsm_pre==R_IDLE || rfsm_pre==R_GET_INST || rfsm_pre==R_GET_DATA) && arfsm_pre==AR_FETCH_LOW_OK      ? R_WAIT_FETCH_LOW :
-                  (rfsm_pre==R_IDLE || rfsm_pre==R_GET_INST || rfsm_pre==R_GET_DATA) && arfsm_pre==AR_FETCH_OK          ? R_WAIT_FETCH     :
-                  (rfsm_pre==R_IDLE || rfsm_pre==R_GET_INST || rfsm_pre==R_GET_DATA) && arfsm_pre==AR_LOAD_OK           ? R_WAIT_LOAD      :
-                   rfsm_pre==R_WAIT_FETCH_LOW                                        && rvalid&&rid==0                  ? R_GET_INST_LOW   :
-                   rfsm_pre==R_GET_INST_LOW                                                                             ? R_WAIT_FETCH_HIGH:
-                   rfsm_pre==R_WAIT_FETCH                                            && rvalid&&rid==0                  ? R_GET_INST       :
-                   rfsm_pre==R_WAIT_FETCH_HIGH                                       && rvalid&&rid==0                  ? R_GET_INST       :
-                   rfsm_pre==R_WAIT_LOAD                                             && rvalid&&rid==1                  ? R_GET_DATA       :
-                   rfsm_pre==R_GET_DATA                                              && inst_buf_cnt==1&&inst_buf_split ? R_WAIT_FETCH_HIGH: 
-                  (rfsm_pre==R_GET_INST|| rfsm_pre==R_GET_DATA)                                                         ? R_IDLE           :
-                                                                                                                          rfsm_pre         ;
+wire data_ren = data_en && data_wen==0;
+wire i_ar_split = (inst_addr >= `ysyx_22041752_FLASH_BASEADDR) && (inst_addr <= `ysyx_22041752_FLASH_END)  ;
+wire data_compete = awaddr==data_addr && bfsm_pre!=B_IDLE && bfsm_pre!=B_GET;
+wire inst_compete = awaddr==inst_addr && bfsm_pre!=B_IDLE && bfsm_pre!=B_GET
+                                            ||
+                    data_addr==inst_addr && data_en && |data_wen;
+
+`ifdef R_OUTSTANDING
+assign arfsm_nxt = (arfsm_pre==AR_IDLE || arfsm_pre==AR_FETCH_OK || arfsm_pre==AR_LOAD_OK) && inst_en  &&!inst_compete && i_ar_split ? AR_FETCH_LOW    :  
+                   (arfsm_pre==AR_IDLE || arfsm_pre==AR_FETCH_OK || arfsm_pre==AR_LOAD_OK) && inst_en  &&!inst_compete &&!i_ar_split ? AR_FETCH        :  
+                   (arfsm_pre==AR_IDLE || arfsm_pre==AR_FETCH_OK || arfsm_pre==AR_LOAD_OK) && data_ren &&!data_compete               ? AR_LOAD         :
+                    arfsm_pre==AR_FETCH                                                                && arready                    ? AR_FETCH_OK     :  
+                    arfsm_pre==AR_LOAD                                                                 && arready                    ? AR_LOAD_OK      :
+                    arfsm_pre==AR_FETCH_LOW                                                            && arready                    ? AR_FETCH_LOW_OK :  
+                    arfsm_pre==AR_FETCH_LOW_OK                                                                                       ? AR_FETCH_HIGH   :  
+                    arfsm_pre==AR_FETCH_HIGH                                                           && arready                    ? AR_FETCH_OK     :  
+                   (arfsm_pre==AR_FETCH_OK || arfsm_pre==AR_LOAD_OK)                                                                 ? AR_IDLE         :
+                                                                                                                                       arfsm_pre       ;
+
+assign rfsm_nxt = (rfsm_pre==R_IDLE || rfsm_pre==R_GET_INST || rfsm_pre==R_GET_DATA) && arfsm_pre==AR_FETCH_LOW_OK ? R_WAIT_FETCH_LOW :
+                  (rfsm_pre==R_IDLE || rfsm_pre==R_GET_INST || rfsm_pre==R_GET_DATA) && arfsm_pre==AR_FETCH_OK     ? R_WAIT_FETCH     :
+                  (rfsm_pre==R_IDLE || rfsm_pre==R_GET_INST || rfsm_pre==R_GET_DATA) && arfsm_pre==AR_LOAD_OK      ? R_WAIT_LOAD      :
+                   rfsm_pre==R_WAIT_FETCH_LOW                                        && rvalid&&rid==0             ? R_GET_INST_LOW   :
+                   rfsm_pre==R_GET_INST_LOW                                                                        ? R_WAIT_FETCH_HIGH:
+                   rfsm_pre==R_WAIT_FETCH                                            && rvalid&&rid==0             ? R_GET_INST       :
+                   rfsm_pre==R_WAIT_FETCH_HIGH                                       && rvalid&&rid==0             ? R_GET_INST       :
+                   rfsm_pre==R_WAIT_LOAD                                             && rvalid&&rid==1             ? R_GET_DATA       :
+                  (rfsm_pre==R_GET_INST|| rfsm_pre==R_GET_DATA)                                                    ? R_IDLE           :
+                                                                                                                     rfsm_pre         ;
 
 reg data_buf_v;
 reg [`ysyx_22041752_DATA_DATA_WD-1:0] data_buf;
@@ -3586,7 +3621,7 @@ always @(posedge clk) begin
     if (reset) begin
         data_buf_v <= 0;
     end
-    else if ((rfsm_pre==R_WAIT_FETCH || rfsm_pre==R_WAIT_FETCH_HIGH) && rvalid && (rid==1)) begin
+    else if ((rfsm_pre==R_WAIT_FETCH_LOW || rfsm_pre==R_WAIT_FETCH) && rvalid && (rid==1)) begin
         data_buf_v <= 1;
     end
     else if (rfsm_nxt==R_GET_INST) begin
@@ -3597,31 +3632,21 @@ always @(posedge clk) begin
     if (reset) begin
         data_buf <= 0;
     end
-    else if ((rfsm_pre==R_WAIT_FETCH || rfsm_pre==R_WAIT_FETCH_HIGH) && rvalid && (rid==1)) begin
+    else if ((rfsm_pre==R_WAIT_FETCH_LOW || rfsm_pre==R_WAIT_FETCH) && rvalid && (rid==1)) begin
         data_buf <= rdata;
     end
 end
-
+reg inst_buf_v;
+reg [`ysyx_22041752_DATA_DATA_WD-1:0] inst_buf;
 always @(posedge clk) begin
     if (reset) begin
-        inst_buf_split <= 0;
-    end
-    else if (arfsm_nxt==AR_FETCH_LOW && rfsm_pre==R_WAIT_LOAD) begin
-        inst_buf_split <= 1;
-    end
-    else if (rfsm_nxt==R_GET_DATA) begin
-        inst_buf_split <= 0;
-    end
-end
-always @(posedge clk) begin
-    if (reset) begin
-        inst_buf_cnt <= 0;
+        inst_buf_v <= 0;
     end
     else if (rfsm_pre==R_WAIT_LOAD && rvalid && rid==0) begin
-        inst_buf_cnt <= inst_buf_cnt + 1;
+        inst_buf_v <= 1;
     end
-    else if (rfsm_nxt==R_GET_DATA) begin
-        inst_buf_cnt <= 0;
+    else if (rfsm_pre==R_GET_DATA) begin
+        inst_buf_v <= 0;
     end
 end
 always @(posedge clk) begin
@@ -3629,55 +3654,48 @@ always @(posedge clk) begin
         inst_buf <= 0;
     end
     else if (rfsm_pre==R_WAIT_LOAD && rvalid && rid==0) begin
-        if(inst_buf_cnt==0)
-            inst_buf <= rdata;
-        else
-            inst_buf[`ysyx_22041752_DATA_DATA_WD-1:32] <= rdata[`ysyx_22041752_DATA_DATA_WD-1:32];
+        inst_buf <= rdata;
     end
 end
 
-reg  [2:0] awfsm_pre;
-wire [2:0] awfsm_nxt;
-parameter AW_IDLE=0;
-parameter AW_WAIT=1;
-parameter AW_WAIT_W=2;
-parameter AW_WAIT_AW=3;
-parameter AW_OK=4;
-always @(posedge clk) begin
-    if (reset) begin
-        awfsm_pre <= AW_IDLE;
-    end
-    else begin
-        awfsm_pre <= awfsm_nxt;
-    end
-end
+`else
+assign arfsm_nxt = arfsm_pre==AR_IDLE            && inst_en  &&!inst_compete && i_ar_split ? AR_FETCH_LOW    :  
+                   arfsm_pre==AR_IDLE            && inst_en  &&!inst_compete &&!i_ar_split ? AR_FETCH        :  
+                   arfsm_pre==AR_IDLE            && data_ren &&!data_compete               ? AR_LOAD         :
+                   arfsm_pre==AR_FETCH                       && arready                    ? AR_FETCH_OK     :  
+                   arfsm_pre==AR_LOAD                        && arready                    ? AR_LOAD_OK      :
+                   arfsm_pre==AR_FETCH_LOW                   && arready                    ? AR_FETCH_LOW_OK :  
+                   arfsm_pre==AR_FETCH_LOW_OK                && rfsm_pre==R_GET_INST_LOW   ? AR_FETCH_HIGH   :  
+                   arfsm_pre==AR_FETCH_HIGH                  && arready                    ? AR_FETCH_OK     :  
+                  (arfsm_pre==AR_FETCH_OK && rfsm_pre==R_GET_INST || 
+                   arfsm_pre==AR_LOAD_OK  && rfsm_pre==R_GET_DATA)                         ? AR_IDLE         :
+                                                                                             arfsm_pre       ;
 
-assign awfsm_nxt = (awfsm_pre==AW_IDLE || awfsm_pre==AW_OK) &&  data_en&&|data_wen ? AW_WAIT    :
-                    awfsm_pre==AW_WAIT                      &&  awready&&wready    ? AW_OK      :
-                    awfsm_pre==AW_WAIT                      &&  awready            ? AW_WAIT_W  :
-                    awfsm_pre==AW_WAIT                      &&  wready             ? AW_WAIT_AW :
-                    awfsm_pre==AW_WAIT_AW                   &&  awready            ? AW_OK      :
-                    awfsm_pre==AW_WAIT_W                    &&  wready             ? AW_OK      :
-                    awfsm_pre==AW_OK                                               ? AW_IDLE    :
-                                                                                     awfsm_pre  ;
-reg  [1:0] bfsm_pre;
-wire [1:0] bfsm_nxt;
-parameter B_IDLE=0;
-parameter B_WAIT_STORE=1;
-parameter B_GET=2;
-always @(posedge clk) begin
-    if (reset) begin
-        bfsm_pre <= B_IDLE;
-    end
-    else begin
-        bfsm_pre <= bfsm_nxt;
-    end
-end
+assign rfsm_nxt = rfsm_pre==R_IDLE               && arfsm_pre==AR_FETCH_LOW_OK ? R_WAIT_FETCH_LOW :
+                  rfsm_pre==R_IDLE               && arfsm_pre==AR_FETCH_OK     ? R_WAIT_FETCH     :
+                  rfsm_pre==R_IDLE               && arfsm_pre==AR_LOAD_OK      ? R_WAIT_LOAD      :
+                  rfsm_pre==R_WAIT_FETCH_LOW     && rvalid&&rid==0             ? R_GET_INST_LOW   :
+                  rfsm_pre==R_GET_INST_LOW                                     ? R_WAIT_FETCH_HIGH:
+                  rfsm_pre==R_WAIT_FETCH         && rvalid&&rid==0             ? R_GET_INST       :
+                  rfsm_pre==R_WAIT_FETCH_HIGH    && rvalid&&rid==0             ? R_GET_INST       :
+                  rfsm_pre==R_WAIT_LOAD          && rvalid&&rid==1             ? R_GET_DATA       :
+                 (rfsm_pre==R_GET_INST|| rfsm_pre==R_GET_DATA)                 ? R_IDLE           :
+                                                                                 rfsm_pre         ;
+`endif
 
-assign bfsm_nxt = (bfsm_pre==B_IDLE || bfsm_pre==B_GET) && awfsm_pre==AW_OK ? B_WAIT_STORE :
-                   bfsm_pre==B_WAIT_STORE               && bvalid           ? B_GET        :
-                   bfsm_pre==B_GET                                          ? B_IDLE       :
-                                                                              bfsm_pre     ;
+assign awfsm_nxt = awfsm_pre==AW_IDLE     && data_en&&|data_wen ? AW_WAIT    :
+                   awfsm_pre==AW_WAIT     && awready&&wready    ? AW_OK      :
+                   awfsm_pre==AW_WAIT     && awready            ? AW_WAIT_W  :
+                   awfsm_pre==AW_WAIT     && wready             ? AW_WAIT_AW :
+                   awfsm_pre==AW_WAIT_AW  && awready            ? AW_OK      :
+                   awfsm_pre==AW_WAIT_W   && wready             ? AW_OK      :
+                   awfsm_pre==AW_OK       && bfsm_pre==B_GET    ? AW_IDLE    :
+                                                                  awfsm_pre  ;
+
+assign bfsm_nxt = bfsm_pre==B_IDLE       && awfsm_pre==AW_OK ? B_WAIT_STORE :
+                  bfsm_pre==B_WAIT_STORE && bvalid           ? B_GET        :
+                  bfsm_pre==B_GET                            ? B_IDLE       :
+                                                               bfsm_pre     ;
 
 reg                                   inst_ready_r ;
 reg [`ysyx_22041752_DATA_DATA_WD-1:0] inst_rdata_r ;
@@ -3707,7 +3725,7 @@ always @(posedge clk) begin
     if (reset) begin
         inst_rdata_l_v <= 0;
     end
-    else if(rfsm_nxt==R_GET_INST_LOW || rfsm_nxt==R_GET_DATA && inst_buf_cnt==2'd1 && inst_buf_split) begin
+    else if(rfsm_nxt==R_GET_INST_LOW) begin
         inst_rdata_l_v <= 1;
     end
     else if(rfsm_nxt==R_GET_INST) begin
@@ -3720,9 +3738,6 @@ always @(posedge clk) begin
     end
     else if(rfsm_nxt==R_GET_INST_LOW) begin
         inst_rdata_l <= rdata[31:0];
-    end
-    else if(rfsm_nxt==R_GET_DATA && inst_buf_cnt==2'd1 && inst_buf_split) begin
-        inst_rdata_l <= inst_buf[31:0];
     end
 end
 
@@ -3738,9 +3753,11 @@ always @(posedge clk) begin
             inst_rdata_r <= rdata;
         end
     end
-    else if(rfsm_nxt==R_GET_DATA && inst_buf_cnt==2'd2 || rfsm_nxt==R_GET_DATA && inst_buf_cnt==2'd1 && !inst_buf_split) begin
+`ifdef R_OUTSTANDING
+    else if(rfsm_nxt==R_GET_DATA && inst_buf_v) begin
         inst_rdata_r <= inst_buf;
     end
+`endif
 end
 
 always @(posedge clk) begin
@@ -3748,9 +3765,12 @@ always @(posedge clk) begin
         inst_valid_r <= 0;
     end
     else begin
-        inst_valid_r <= rfsm_nxt==R_GET_INST                                            || 
-                        rfsm_nxt==R_GET_DATA && inst_buf_cnt==2'd2                      ||
-                        rfsm_nxt==R_GET_DATA && inst_buf_cnt==2'd1 && !inst_buf_split;
+`ifdef R_OUTSTANDING
+        inst_valid_r <= rfsm_nxt==R_GET_INST               || 
+                        rfsm_nxt==R_GET_DATA && inst_buf_v ;
+`else
+        inst_valid_r <= rfsm_nxt==R_GET_INST;
+`endif
     end
 end
 
@@ -3759,8 +3779,8 @@ always @(posedge clk) begin
         data_ready_r <= 0;
     end
     else begin
-        data_ready_r <= data_en && data_wen==0 && (arfsm_nxt==AR_LOAD) ||
-                        data_en && data_wen!=0 && awfsm_nxt==AW_WAIT   ;
+        data_ready_r <= data_en && data_wen==0 && arfsm_nxt==AR_LOAD ||
+                        data_en && data_wen!=0 && awfsm_nxt==AW_WAIT ;
     end
 end
 
@@ -3771,9 +3791,11 @@ always @(posedge clk) begin
     else if (rfsm_nxt==R_GET_DATA) begin
         data_rdata_r <= rdata;
     end
+`ifdef R_OUTSTANDING
     else if(rfsm_nxt==R_GET_INST && data_buf_v) begin
         data_rdata_r <= data_buf;
     end
+`endif
 end
 
 always @(posedge clk) begin
@@ -3782,23 +3804,23 @@ always @(posedge clk) begin
     end
     else begin
         data_valid_r <= rfsm_nxt==R_GET_DATA               || 
+`ifdef R_OUTSTANDING
                         rfsm_nxt==R_GET_INST && data_buf_v ||
+`endif
                         bfsm_nxt==B_GET                    ;
     end
 end
 
 reg [ 3:0] arid_r   ; 
 reg [31:0] araddr_r ; 
-reg [ 7:0] arlen_r  ; 
 reg [ 2:0] arsize_r ; 
-reg [ 1:0] arburst_r; 
 reg        arvalid_r; 
 
 assign arid    = arid_r   ; 
 assign araddr  = araddr_r ; 
-assign arlen   = arlen_r  ; 
+assign arlen   = 8'b0;  
 assign arsize  = arsize_r ; 
-assign arburst = arburst_r; 
+assign arburst = 2'b01;  
 assign arvalid = arvalid_r; 
 
 always @(posedge clk) begin
@@ -3835,10 +3857,6 @@ always @(posedge clk) begin
     end
 end
 
-always @(*) begin
-    arlen_r = 0;
-end
-
 always @(posedge clk) begin
     if (reset) begin
         arsize_r <= 3'b010; // 4 bytes
@@ -3852,10 +3870,6 @@ always @(posedge clk) begin
     else if(arfsm_nxt==AR_LOAD) begin
         arsize_r <= data_size;
     end
-end
-
-always @(*) begin
-    arburst_r = 2'b01;
 end
 
 always @(posedge clk) begin
@@ -3889,23 +3903,16 @@ always @(posedge clk) begin
     end
 end
 
-reg [ 3:0] awid_r   ; 
 reg [31:0] awaddr_r ; 
-reg [ 7:0] awlen_r  ; 
 reg [ 2:0] awsize_r ; 
-reg [ 1:0] awburst_r; 
 reg        awvalid_r; 
 
-assign awid    = awid_r   ; 
+assign awid    = 4'd1; 
 assign awaddr  = awaddr_r ; 
-assign awlen   = awlen_r  ; 
+assign awlen   = 8'b0; 
 assign awsize  = awsize_r ; 
-assign awburst = awburst_r; 
+assign awburst = 2'b01; 
 assign awvalid = awvalid_r; 
-
-always @(*) begin
-    awid_r = 1;
-end
 
 always @(posedge clk) begin
     if (reset) begin
@@ -3916,21 +3923,13 @@ always @(posedge clk) begin
     end
 end
 
-always @(*) begin
-    awlen_r = 0;
-end
-
 always @(posedge clk) begin
     if (reset) begin
-        awsize_r <= 3'b000; //1 bytes
+        awsize_r <= 3'b000; //1 byte
     end
     else begin
         awsize_r <= data_size; 
     end
-end
-
-always @(*) begin
-    awburst_r = 0;
 end
 
 always @(posedge clk) begin
@@ -3949,11 +3948,10 @@ end
 
 reg [63:0] wdata_r ;  
 reg [ 7:0] wstrb_r ;  
-reg        wlast_r ;  
 reg        wvalid_r;  
 assign wdata  = wdata_r ;  
 assign wstrb  = wstrb_r ;  
-assign wlast  = wlast_r ;  
+assign wlast  = 1'b1; //wlast_r ;  
 assign wvalid = wvalid_r;  
 
 always @(posedge clk) begin
@@ -3972,10 +3970,6 @@ always @(posedge clk) begin
     else if (awfsm_nxt==AW_WAIT || awfsm_nxt==AW_WAIT_W) begin
         wstrb_r <= data_wen;
     end
-end
-
-always @(*) begin
-    wlast_r = 1;
 end
 
 always @(posedge clk) begin
@@ -4120,10 +4114,388 @@ endmodule
 //                 Copyright (c) 2023 
 //                       ALL RIGHTS RESERVED
 // ---------------------------------------------------------------------------------
+// Filename      : ysyx_22041752_ICACHE_RDU.v
+// Author        : Cw
+// Created On    : 2023-06-17 11:07
+// Last Modified : 2023-06-27 17:13
+// ---------------------------------------------------------------------------------
+// Description   : 
+//
+//
+// -FHDR----------------------------------------------------------------------------
+module ysyx_22041752_ICACHE_RDU (
+    input                                           inst_en        ,
+    input  [`ysyx_22041752_PC_WD-1:0]               inst_addr      ,
+
+    input                                           cmp_allowin    ,
+    output                                          rs_to_cs_valid ,
+    output [`ysyx_22041752_IRS_TO_ICS_BUS_WD-1:0]   rs_to_cs_bus   ,
+
+    output [`ysyx_22041752_ICACHE_EN_WD     -1:0]   rden           ,
+    output [                                 5:0]   raddr
+);
+    
+wire [`ysyx_22041752_ICACHE_INDEX_WD -1:0] index ;
+
+assign index = inst_addr[`ysyx_22041752_ICACHE_INDEX_WD+`ysyx_22041752_ICACHE_OFFSET_WD -1:`ysyx_22041752_ICACHE_OFFSET_WD];
+assign rs_to_cs_bus = {inst_addr, ~rden};
+assign rs_to_cs_valid = 1'b1;
+
+assign rden[0] = !(inst_en && cmp_allowin && !index[`ysyx_22041752_ICACHE_INDEX_WD-1]);
+assign rden[2] = !(inst_en && cmp_allowin && !index[`ysyx_22041752_ICACHE_INDEX_WD-1]);
+assign rden[1] = !(inst_en && cmp_allowin &&  index[`ysyx_22041752_ICACHE_INDEX_WD-1]);
+assign rden[3] = !(inst_en && cmp_allowin &&  index[`ysyx_22041752_ICACHE_INDEX_WD-1]);
+
+assign raddr = index[5:0];
+
+endmodule
+
+// +FHDR----------------------------------------------------------------------------
+//                 Copyright (c) 2023 
+//                       ALL RIGHTS RESERVED
+// ---------------------------------------------------------------------------------
+// Filename      : ysyx_22041752_ICACHE_CMP.v
+// Author        : Cw
+// Created On    : 2023-06-17 11:07
+// Last Modified : 2024-03-13 10:00
+// ---------------------------------------------------------------------------------
+// Description   : 
+//
+//
+// -FHDR----------------------------------------------------------------------------
+
+module ysyx_22041752_ICACHE_CMP (
+    input  clk    ,
+    input  reset  ,
+    input  flush  ,
+
+    output                                       cmp_allowin    ,
+    input                                        rs_to_cs_valid ,
+    input  [`ysyx_22041752_IRS_TO_ICS_BUS_WD-1:0]rs_to_cs_bus   ,
+
+    input  [`ysyx_22041752_ICACHE_TAG_WD  -1:0]  tag0           ,
+    input  [`ysyx_22041752_ICACHE_TAG_WD  -1:0]  tag1           ,
+    input  [`ysyx_22041752_ICACHE_TAG_WD  -1:0]  tag2           ,
+    input  [`ysyx_22041752_ICACHE_TAG_WD  -1:0]  tag3           ,
+
+    input  [128                           -1:0]  data0          ,
+    input  [128                           -1:0]  data1          ,
+    input  [128                           -1:0]  data2          ,
+    input  [128                           -1:0]  data3          ,
+
+    input  [`ysyx_22041752_ICACHE_EN_WD   -1:0]  valid          ,
+    output [`ysyx_22041752_ICACHE_EN_WD   -1:0]  wen            ,
+
+    output [128                           -1:0]  bwen0          ,
+    output [128                           -1:0]  wdata0         ,
+    output [                               5:0]  waddr0         ,
+    output [128                           -1:0]  bwen1          ,
+    output [128                           -1:0]  wdata1         ,
+    output [                               5:0]  waddr1         ,
+    output [128                           -1:0]  bwen2          ,
+    output [128                           -1:0]  wdata2         ,
+    output [                               5:0]  waddr2         ,
+    output [128                           -1:0]  bwen3          ,
+    output [128                           -1:0]  wdata3         ,
+    output [                               5:0]  waddr3         ,
+    output [`ysyx_22041752_ICACHE_TAG_WD  -1:0]  wtag0          ,
+    output [`ysyx_22041752_ICACHE_TAG_WD  -1:0]  wtag1          ,
+    output [`ysyx_22041752_ICACHE_TAG_WD  -1:0]  wtag2          ,
+    output [`ysyx_22041752_ICACHE_TAG_WD  -1:0]  wtag3          ,
+    output                                       wv0            ,
+    output                                       wv1            ,
+    output                                       wv2            ,
+    output                                       wv3            ,
+
+    output [`ysyx_22041752_INST_WD        -1:0]  inst_rdata     ,
+    output                                       cache_miss     ,
+
+    output                                       sram_req       ,
+    input                                        sram_ready     ,
+    output [`ysyx_22041752_DATA_ADDR_WD   -1:0]  sram_addr      ,
+    input  [`ysyx_22041752_DATA_DATA_WD   -1:0]  sram_rdata     ,
+    input                                        sram_valid     
+);
+    
+reg  [3:0] missfsm_pre;
+wire [3:0] missfsm_nxt;
+parameter IDLE         =0;
+parameter REQUEST_0    =1;
+parameter RESPONSE_0   =2;
+parameter GET_0        =3;
+parameter DROP_REQ_0   =4;
+parameter DROP_RESP_0  =5;
+parameter DROPED_0     =6;
+parameter REQUEST_1    =7;
+parameter RESPONSE_1   =8;
+parameter GET_1        =9;
+parameter DROP_REQ_1   =10;
+parameter DROP_RESP_1  =11;
+parameter DROPED_1     =12;
+
+wire cs_ready_go;
+reg  cs_valid   ;
+always @(posedge clk) begin
+    if (reset) begin
+        cs_valid <= 1'b0;
+    end
+    else if (cmp_allowin) begin
+        cs_valid <= rs_to_cs_valid;
+    end
+end
+
+reg [`ysyx_22041752_IRS_TO_ICS_BUS_WD-1:0] rs_to_cs_bus_r;
+always @(posedge clk) begin
+    if (reset) begin
+        rs_to_cs_bus_r <= 0;
+    end
+    else if (rs_to_cs_valid && cmp_allowin) begin
+        rs_to_cs_bus_r <= rs_to_cs_bus;
+    end
+end
+
+wire [`ysyx_22041752_ICACHE_OFFSET_WD-1:0] offset_cs;
+wire [`ysyx_22041752_ICACHE_TAG_WD   -1:0] tag_cs   ;
+wire [`ysyx_22041752_ICACHE_INDEX_WD -1:0] index_cs ;
+wire [`ysyx_22041752_ICACHE_EN_WD    -1:0] rden_cs  ;
+assign {tag_cs, index_cs, offset_cs, rden_cs} = rs_to_cs_bus_r;
+
+wire hit_w0 = missfsm_pre==IDLE && (rden_cs[0]&valid[0] && tag0==tag_cs ||
+                                    rden_cs[1]&valid[1] && tag1==tag_cs );
+
+wire hit_w1 = missfsm_pre==IDLE && (rden_cs[2]&valid[2] && tag2==tag_cs ||
+                                    rden_cs[3]&valid[3] && tag3==tag_cs );
+
+wire [127:0] hit_line = hit_w0 ? rden_cs[0] ? data0 : data1 :
+                                 rden_cs[2] ? data2 : data3 ;
+
+wire hit = hit_w0 || hit_w1;
+
+assign cache_miss = |rden_cs && cs_valid && !(hit || missfsm_pre==GET_1);
+
+always @(posedge clk) begin
+    if (reset) begin
+        missfsm_pre <= IDLE;
+    end
+    else begin
+        missfsm_pre <= missfsm_nxt;
+    end
+end
+
+assign missfsm_nxt = missfsm_pre==IDLE          && !flush && cache_miss ? REQUEST_0    :
+                     missfsm_pre==REQUEST_0     && !flush && sram_ready ? RESPONSE_0   :
+                     missfsm_pre==REQUEST_0     &&  flush &&!sram_ready ? DROP_REQ_0   :
+                     missfsm_pre==REQUEST_0     &&  flush && sram_ready ? DROP_RESP_0  :
+                     missfsm_pre==RESPONSE_0    && !flush && sram_valid ? GET_0        :
+                     missfsm_pre==RESPONSE_0    &&  flush &&!sram_valid ? DROP_RESP_0  :
+                     missfsm_pre==RESPONSE_0    &&  flush && sram_valid ? DROPED_0     :
+                     missfsm_pre==GET_0         && !flush               ? REQUEST_1    :         
+                     missfsm_pre==GET_0         &&  flush               ? DROP_REQ_1   :         
+                     missfsm_pre==REQUEST_1     && !flush && sram_ready ? RESPONSE_1   :
+                     missfsm_pre==REQUEST_1     &&  flush &&!sram_ready ? DROP_REQ_1   :
+                     missfsm_pre==REQUEST_1     &&  flush && sram_ready ? DROP_RESP_1  :
+                     missfsm_pre==RESPONSE_1    && !flush && sram_valid ? GET_1        :
+                     missfsm_pre==RESPONSE_1    &&  flush &&!sram_valid ? DROP_RESP_1  :
+                     missfsm_pre==RESPONSE_1    &&  flush && sram_valid ? DROPED_1     :
+                     missfsm_pre==GET_1                                 ? IDLE         :
+                     missfsm_pre==DROP_REQ_0    &&           sram_ready ? DROP_RESP_0  :
+                     missfsm_pre==DROP_RESP_0   &&           sram_valid ? DROPED_0     :
+                     missfsm_pre==DROPED_0                              ? DROP_REQ_1   :
+                     missfsm_pre==DROP_REQ_1    &&           sram_ready ? DROP_RESP_1  :
+                     missfsm_pre==DROP_RESP_1   &&           sram_valid ? DROPED_1     :
+                     missfsm_pre==DROPED_1                              ? IDLE         :
+                                                                          missfsm_pre;
+
+wire [`ysyx_22041752_PC_WD-1 :0] inst_addr_cs = {tag_cs, index_cs, offset_cs};
+assign sram_req = (missfsm_pre==REQUEST_0 || missfsm_pre==REQUEST_1 || missfsm_pre==DROP_REQ_0 || missfsm_pre==DROP_REQ_1) && !sram_ready;
+assign sram_addr= (missfsm_pre==REQUEST_0 || missfsm_pre==DROP_REQ_0) ? {inst_addr_cs[`ysyx_22041752_PC_WD-1:4], 4'b0000} : {inst_addr_cs[`ysyx_22041752_PC_WD-1:4], 4'b1000};
+
+reg [`ysyx_22041752_DATA_DATA_WD-1:0] line_lower;
+always @(posedge clk) begin
+    if (reset) begin
+        line_lower <= 0;
+    end
+    else if(missfsm_nxt==GET_0) begin
+        line_lower <= sram_rdata;
+    end
+end
+reg [`ysyx_22041752_DATA_DATA_WD-1:0] line_upper;
+always @(posedge clk) begin
+    if (reset) begin
+        line_upper <= 0;
+    end
+    else if(missfsm_nxt==GET_1) begin
+        line_upper <= sram_rdata;
+    end
+end
+
+wire [127:0] new_line = {line_upper, line_lower}; 
+
+assign inst_rdata = hit                    ?    
+                    offset_cs[`ysyx_22041752_ICACHE_OFFSET_WD-1:2] == 0 ? hit_line[ 31: 0] : 
+                    offset_cs[`ysyx_22041752_ICACHE_OFFSET_WD-1:2] == 1 ? hit_line[ 63:32] : 
+                    offset_cs[`ysyx_22041752_ICACHE_OFFSET_WD-1:2] == 2 ? hit_line[ 95:64] : 
+               /* offset_cs[`ysyx_22041752_ICACHE_OFFSET_WD-1:2] == 3 ?*/ hit_line[127:96] 
+                                           :
+                    //(missfsm_pre == GET_1) ?
+                    offset_cs[`ysyx_22041752_ICACHE_OFFSET_WD-1:2] == 0 ? new_line[ 31: 0] : 
+                    offset_cs[`ysyx_22041752_ICACHE_OFFSET_WD-1:2] == 1 ? new_line[ 63:32] : 
+                    offset_cs[`ysyx_22041752_ICACHE_OFFSET_WD-1:2] == 2 ? new_line[ 95:64] : 
+               /* offset_cs[`ysyx_22041752_ICACHE_OFFSET_WD-1:2] == 3 ?*/ new_line[127:96] ;
+
+reg replace;
+always @(posedge clk) begin
+    if (reset) begin
+        replace <= 0;
+    end
+    else begin
+        replace <= ~replace;
+    end
+end
+
+assign wen[0] = ~(missfsm_nxt==GET_1 && rden_cs[0] && replace==0) ;
+assign wen[1] = ~(missfsm_nxt==GET_1 && rden_cs[1] && replace==0) ;
+assign wen[2] = ~(missfsm_nxt==GET_1 && rden_cs[2] && replace==1) ;
+assign wen[3] = ~(missfsm_nxt==GET_1 && rden_cs[3] && replace==1) ;
+
+assign bwen0  = 0;
+assign bwen1  = 0;
+assign bwen2  = 0;
+assign bwen3  = 0;
+
+assign wdata0 = {sram_rdata, line_lower};
+assign wdata1 = {sram_rdata, line_lower};
+assign wdata2 = {sram_rdata, line_lower};
+assign wdata3 = {sram_rdata, line_lower};
+
+assign wtag0  = tag_cs;
+assign wtag1  = tag_cs;
+assign wtag2  = tag_cs;
+assign wtag3  = tag_cs;
+
+assign wv0  = 1'b1;
+assign wv1  = 1'b1;
+assign wv2  = 1'b1;
+assign wv3  = 1'b1;
+
+assign waddr0 = index_cs[5:0];
+assign waddr1 = index_cs[5:0];
+assign waddr2 = index_cs[5:0];
+assign waddr3 = index_cs[5:0];
+
+assign cmp_allowin = !cs_valid || cs_ready_go;
+assign cs_ready_go = missfsm_pre==IDLE && !cache_miss || missfsm_pre==GET_1 || missfsm_pre==DROPED_1;
+
+endmodule
+
+// +FHDR----------------------------------------------------------------------------
+//                 Copyright (c) 2023 
+//                       ALL RIGHTS RESERVED
+// ---------------------------------------------------------------------------------
+// Filename      : ysyx_22041752_ICACHE_TAG.v
+// Author        : Cw
+// Created On    : 2023-07-17 17:09
+// Last Modified : 2023-07-24 12:18
+// ---------------------------------------------------------------------------------
+// Description   : 
+//
+//
+// -FHDR----------------------------------------------------------------------------
+module ysyx_22041752_ICACHE_TAG (
+    input clk       ,
+    input reset     ,
+
+    input  [5:0]                              addr,
+    input                                     en  ,
+    input                                     wen ,
+    input  [`ysyx_22041752_ICACHE_TAG_WD-1:0] in  ,
+    output reg [`ysyx_22041752_ICACHE_TAG_WD-1:0] out
+);
+    
+reg [`ysyx_22041752_ICACHE_TAG_WD-1:0] tag [63:0];
+
+genvar i;
+generate
+    for (i = 0; i < 64; i=i+1) begin
+        :Write_Regs
+        always @(posedge clk) begin
+            if (reset) begin
+                tag[i] <= 0;
+            end
+            else if(!wen && !en && (addr == i))
+                tag[i] <= in;
+        end
+    end
+endgenerate
+
+always @(posedge clk) begin
+    if (reset) begin
+        out <= 0;
+    end
+    else if(!en && wen) begin
+        out <= tag[addr];
+    end
+end
+
+endmodule
+// +FHDR----------------------------------------------------------------------------
+//                 Copyright (c) 2023 
+//                       ALL RIGHTS RESERVED
+// ---------------------------------------------------------------------------------
+// Filename      : ysyx_22041752_ICACHE_V.v
+// Author        : Cw
+// Created On    : 2023-06-17 16:46
+// Last Modified : 2023-07-24 12:17
+// ---------------------------------------------------------------------------------
+// Description   : valid table for cache
+//
+//
+// -FHDR----------------------------------------------------------------------------
+module ysyx_22041752_ICACHE_V (
+    input  clk  ,
+    input  reset,
+
+    input  [5:0] addr ,
+    output reg   v_o  ,
+    input        en   ,
+    input        we   ,
+    input        v_i
+);
+    
+reg [63:0] valid;
+
+genvar i;
+generate
+    for (i = 0; i < 64; i=i+1) begin
+        :Write_Regs
+        always @(posedge clk) begin
+            if (reset) begin
+                valid[i] <= 0;
+            end
+            else if(!we && !en && (addr == i))
+                valid[i] <= v_i;
+        end
+    end
+endgenerate
+
+always @(posedge clk) begin
+    if (reset) begin
+        v_o <= 0;
+    end
+    else if(!en && we) begin
+        v_o <= valid[addr];
+    end
+end
+endmodule
+
+// +FHDR----------------------------------------------------------------------------
+//                 Copyright (c) 2023 
+//                       ALL RIGHTS RESERVED
+// ---------------------------------------------------------------------------------
 // Filename      : ysyx_22041752_ICACHE.v
 // Author        : Cw
 // Created On    : 2023-06-17 10:29
-// Last Modified : 2023-07-17 17:24
+// Last Modified : 2024-03-27 18:25
 // ---------------------------------------------------------------------------------
 // Description   : 2-way set associative cache
 //
@@ -4172,6 +4544,16 @@ module ysyx_22041752_ICACHE(
     input  [127:0] io_sram3_rdata    
 );
     
+reg flush_r;
+always @(posedge clk) begin
+    if (reset) begin
+        flush_r <= 0;
+    end
+    else begin
+        flush_r <= flush;
+    end
+end
+
 wire [`ysyx_22041752_ICACHE_EN_WD   -1:0] rden       ;
 wire [                               5:0] raddr      ;
 
@@ -4227,9 +4609,9 @@ wire [                               5:0]  waddr2;
 wire [                               5:0]  waddr3;
 
 ysyx_22041752_ICACHE_CMP U_ICACHE_CMP_0(
-    .clk    ( clk   ),
-    .reset  ( reset ),
-    .flush  ( flush ),
+    .clk    ( clk     ),
+    .reset  ( reset   ),
+    .flush  ( flush_r ),
 
     .cmp_allowin    ( cmp_allowin    ),
     .rs_to_cs_valid ( rs_to_cs_valid ),
@@ -4400,737 +4782,6 @@ endmodule
 //                 Copyright (c) 2023 
 //                       ALL RIGHTS RESERVED
 // ---------------------------------------------------------------------------------
-// Filename      : ysyx_22041752_ICACHE_RDU.v
-// Author        : Cw
-// Created On    : 2023-06-17 11:07
-// Last Modified : 2023-06-27 17:13
-// ---------------------------------------------------------------------------------
-// Description   : 
-//
-//
-// -FHDR----------------------------------------------------------------------------
-module ysyx_22041752_ICACHE_RDU (
-    input                                           inst_en        ,
-    input  [`ysyx_22041752_PC_WD-1:0]               inst_addr      ,
-
-    input                                           cmp_allowin    ,
-    output                                          rs_to_cs_valid ,
-    output [`ysyx_22041752_IRS_TO_ICS_BUS_WD-1:0]   rs_to_cs_bus   ,
-
-    output [`ysyx_22041752_ICACHE_EN_WD     -1:0]   rden           ,
-    output [                                 5:0]   raddr
-);
-    
-wire [`ysyx_22041752_ICACHE_INDEX_WD -1:0] index ;
-
-assign index = inst_addr[`ysyx_22041752_ICACHE_INDEX_WD+`ysyx_22041752_ICACHE_OFFSET_WD -1:`ysyx_22041752_ICACHE_OFFSET_WD];
-assign rs_to_cs_bus = {inst_addr, ~rden};
-assign rs_to_cs_valid = 1'b1;
-
-assign rden[0] = !(inst_en && cmp_allowin && !index[`ysyx_22041752_ICACHE_INDEX_WD-1]);
-assign rden[2] = !(inst_en && cmp_allowin && !index[`ysyx_22041752_ICACHE_INDEX_WD-1]);
-assign rden[1] = !(inst_en && cmp_allowin &&  index[`ysyx_22041752_ICACHE_INDEX_WD-1]);
-assign rden[3] = !(inst_en && cmp_allowin &&  index[`ysyx_22041752_ICACHE_INDEX_WD-1]);
-
-assign raddr = index[5:0];
-
-endmodule
-
-// +FHDR----------------------------------------------------------------------------
-//                 Copyright (c) 2023 
-//                       ALL RIGHTS RESERVED
-// ---------------------------------------------------------------------------------
-// Filename      : ysyx_22041752_ICACHE_CMP.v
-// Author        : Cw
-// Created On    : 2023-06-17 11:07
-// Last Modified : 2023-07-24 12:16
-// ---------------------------------------------------------------------------------
-// Description   : 
-//
-//
-// -FHDR----------------------------------------------------------------------------
-
-module ysyx_22041752_ICACHE_CMP (
-    input  clk    ,
-    input  reset  ,
-    input  flush  ,
-
-    output                                       cmp_allowin    ,
-    input                                        rs_to_cs_valid ,
-    input  [`ysyx_22041752_IRS_TO_ICS_BUS_WD-1:0]rs_to_cs_bus   ,
-
-    input  [`ysyx_22041752_ICACHE_TAG_WD  -1:0]  tag0           ,
-    input  [`ysyx_22041752_ICACHE_TAG_WD  -1:0]  tag1           ,
-    input  [`ysyx_22041752_ICACHE_TAG_WD  -1:0]  tag2           ,
-    input  [`ysyx_22041752_ICACHE_TAG_WD  -1:0]  tag3           ,
-
-    input  [128                           -1:0]  data0          ,
-    input  [128                           -1:0]  data1          ,
-    input  [128                           -1:0]  data2          ,
-    input  [128                           -1:0]  data3          ,
-
-    input  [`ysyx_22041752_ICACHE_EN_WD   -1:0]  valid          ,
-    output [`ysyx_22041752_ICACHE_EN_WD   -1:0]  wen            ,
-
-    output [128                           -1:0]  bwen0          ,
-    output [128                           -1:0]  wdata0         ,
-    output [                               5:0]  waddr0         ,
-    output [128                           -1:0]  bwen1          ,
-    output [128                           -1:0]  wdata1         ,
-    output [                               5:0]  waddr1         ,
-    output [128                           -1:0]  bwen2          ,
-    output [128                           -1:0]  wdata2         ,
-    output [                               5:0]  waddr2         ,
-    output [128                           -1:0]  bwen3          ,
-    output [128                           -1:0]  wdata3         ,
-    output [                               5:0]  waddr3         ,
-    output [`ysyx_22041752_ICACHE_TAG_WD  -1:0]  wtag0          ,
-    output [`ysyx_22041752_ICACHE_TAG_WD  -1:0]  wtag1          ,
-    output [`ysyx_22041752_ICACHE_TAG_WD  -1:0]  wtag2          ,
-    output [`ysyx_22041752_ICACHE_TAG_WD  -1:0]  wtag3          ,
-    output                                       wv0            ,
-    output                                       wv1            ,
-    output                                       wv2            ,
-    output                                       wv3            ,
-
-    output [`ysyx_22041752_INST_WD        -1:0]  inst_rdata     ,
-    output                                       cache_miss     ,
-
-    output                                       sram_req       ,
-    input                                        sram_ready     ,
-    output [`ysyx_22041752_DATA_ADDR_WD   -1:0]  sram_addr      ,
-    input  [`ysyx_22041752_DATA_DATA_WD   -1:0]  sram_rdata     ,
-    input                                        sram_valid     
-);
-    
-wire cs_ready_go;
-reg  cs_valid   ;
-always @(posedge clk) begin
-    if (reset) begin
-        cs_valid <= 1'b0;
-    end
-    else if (cmp_allowin) begin
-        cs_valid <= rs_to_cs_valid;
-    end
-end
-
-reg [`ysyx_22041752_IRS_TO_ICS_BUS_WD-1:0] rs_to_cs_bus_r;
-always @(posedge clk) begin
-    if (reset) begin
-        rs_to_cs_bus_r <= 0;
-    end
-    else if (rs_to_cs_valid && cmp_allowin) begin
-        rs_to_cs_bus_r <= rs_to_cs_bus;
-    end
-end
-
-wire [`ysyx_22041752_ICACHE_OFFSET_WD-1:0] offset_cs;
-wire [`ysyx_22041752_ICACHE_TAG_WD   -1:0] tag_cs   ;
-wire [`ysyx_22041752_ICACHE_INDEX_WD -1:0] index_cs ;
-wire [`ysyx_22041752_ICACHE_EN_WD    -1:0] rden_cs  ;
-assign {tag_cs, index_cs, offset_cs, rden_cs} = rs_to_cs_bus_r;
-
-wire hit_w0 = missfsm_pre==IDLE && (rden_cs[0]&valid[0] && tag0==tag_cs ||
-                                    rden_cs[1]&valid[1] && tag1==tag_cs );
-
-wire hit_w1 = missfsm_pre==IDLE && (rden_cs[2]&valid[2] && tag2==tag_cs ||
-                                    rden_cs[3]&valid[3] && tag3==tag_cs );
-
-wire [127:0] hit_line = hit_w0 ? rden_cs[0] ? data0 : data1 :
-                                 rden_cs[2] ? data2 : data3 ;
-
-
-assign cache_miss = |rden_cs && cs_valid && !(hit_w0 || hit_w1 || missfsm_pre==GET_1);
-
-reg  [3:0] missfsm_pre;
-wire [3:0] missfsm_nxt;
-parameter IDLE         =0;
-
-parameter REQUEST_0    =1;
-parameter RESPONSE_0   =2;
-parameter GET_0        =3;
-parameter DROP_REQ_0   =4;
-parameter DROP_RESP_0  =5;
-parameter DROPED_0     =6;
-
-parameter REQUEST_1    =7;
-parameter RESPONSE_1   =8;
-parameter GET_1        =9;
-parameter DROP_REQ_1   =10;
-parameter DROP_RESP_1  =11;
-parameter DROPED_1     =12;
-
-always @(posedge clk) begin
-    if (reset) begin
-        missfsm_pre <= IDLE;
-    end
-    else begin
-        missfsm_pre <= missfsm_nxt;
-    end
-end
-
-assign missfsm_nxt = missfsm_pre==IDLE          && !flush && cache_miss ? REQUEST_0    :
-                     missfsm_pre==REQUEST_0     && !flush && sram_ready ? RESPONSE_0   :
-                     missfsm_pre==REQUEST_0     &&  flush &&!sram_ready ? DROP_REQ_0   :
-                     missfsm_pre==REQUEST_0     &&  flush && sram_ready ? DROP_RESP_0  :
-                     missfsm_pre==RESPONSE_0    && !flush && sram_valid ? GET_0        :
-                     missfsm_pre==RESPONSE_0    &&  flush &&!sram_valid ? DROP_RESP_0  :
-                     missfsm_pre==RESPONSE_0    &&  flush && sram_valid ? DROPED_0     :
-                     missfsm_pre==GET_0         && !flush               ? REQUEST_1    :         
-                     missfsm_pre==GET_0         &&  flush               ? DROP_REQ_1   :         
-                     missfsm_pre==REQUEST_1     && !flush && sram_ready ? RESPONSE_1   :
-                     missfsm_pre==REQUEST_1     &&  flush &&!sram_ready ? DROP_REQ_1   :
-                     missfsm_pre==REQUEST_1     &&  flush && sram_ready ? DROP_RESP_1  :
-                     missfsm_pre==RESPONSE_1    && !flush && sram_valid ? GET_1        :
-                     missfsm_pre==RESPONSE_1    &&  flush &&!sram_valid ? DROP_RESP_1  :
-                     missfsm_pre==RESPONSE_1    &&  flush && sram_valid ? DROPED_1     :
-                     missfsm_pre==GET_1                                 ? IDLE         :
-                     missfsm_pre==DROP_REQ_0    &&           sram_ready ? DROP_RESP_0  :
-                     missfsm_pre==DROP_RESP_0   &&           sram_valid ? DROPED_0     :
-                     missfsm_pre==DROPED_0                              ? DROP_REQ_1   :
-                     missfsm_pre==DROP_REQ_1    &&           sram_ready ? DROP_RESP_1  :
-                     missfsm_pre==DROP_RESP_1   &&           sram_valid ? DROPED_1     :
-                     missfsm_pre==DROPED_1                              ? IDLE         :
-                                                                          missfsm_pre;
-
-wire [`ysyx_22041752_PC_WD-1 :0] inst_addr_cs = {tag_cs, index_cs, offset_cs};
-assign sram_req = (missfsm_pre==REQUEST_0 || missfsm_pre==REQUEST_1 || missfsm_pre==DROP_REQ_0 || missfsm_pre==DROP_REQ_1) && !sram_ready;
-assign sram_addr= (missfsm_pre==REQUEST_0 || missfsm_pre==DROP_REQ_0) ? {inst_addr_cs[`ysyx_22041752_PC_WD-1:4], 4'b0000} : {inst_addr_cs[`ysyx_22041752_PC_WD-1:4], 4'b1000};
-
-reg [`ysyx_22041752_DATA_DATA_WD-1:0] line_lower;
-always @(posedge clk) begin
-    if (reset) begin
-        line_lower <= 0;
-    end
-    else if(missfsm_nxt==GET_0) begin
-        line_lower <= sram_rdata;
-    end
-end
-reg [`ysyx_22041752_DATA_DATA_WD-1:0] line_upper;
-always @(posedge clk) begin
-    if (reset) begin
-        line_upper <= 0;
-    end
-    else if(missfsm_nxt==GET_1) begin
-        line_upper <= sram_rdata;
-    end
-end
-
-wire [127:0] new_line = {line_upper, line_lower}; 
-
-assign inst_rdata = missfsm_pre == GET_1 ?
-                    offset_cs[`ysyx_22041752_ICACHE_OFFSET_WD-1:2] == 0 ? new_line[ 31: 0] : 
-                    offset_cs[`ysyx_22041752_ICACHE_OFFSET_WD-1:2] == 1 ? new_line[ 63:32] : 
-                    offset_cs[`ysyx_22041752_ICACHE_OFFSET_WD-1:2] == 2 ? new_line[ 95:64] : 
-               /* offset_cs[`ysyx_22041752_ICACHE_OFFSET_WD-1:2] == 3 ?*/ new_line[127:96] 
-                                        :
-                    offset_cs[`ysyx_22041752_ICACHE_OFFSET_WD-1:2] == 0 ? hit_line[ 31: 0] : 
-                    offset_cs[`ysyx_22041752_ICACHE_OFFSET_WD-1:2] == 1 ? hit_line[ 63:32] : 
-                    offset_cs[`ysyx_22041752_ICACHE_OFFSET_WD-1:2] == 2 ? hit_line[ 95:64] : 
-               /* offset_cs[`ysyx_22041752_ICACHE_OFFSET_WD-1:2] == 3 ?*/ hit_line[127:96] ;
-
-reg replace;
-always @(posedge clk) begin
-    if (reset) begin
-        replace <= 0;
-    end
-    else begin
-        replace <= ~replace;
-    end
-end
-
-assign wen[0] = ~(missfsm_nxt==GET_1 && rden_cs[0] && replace==0) ;
-assign wen[1] = ~(missfsm_nxt==GET_1 && rden_cs[1] && replace==0) ;
-assign wen[2] = ~(missfsm_nxt==GET_1 && rden_cs[2] && replace==1) ;
-assign wen[3] = ~(missfsm_nxt==GET_1 && rden_cs[3] && replace==1) ;
-
-assign bwen0  = 0;
-assign bwen1  = 0;
-assign bwen2  = 0;
-assign bwen3  = 0;
-
-assign wdata0 = {sram_rdata, line_lower};
-assign wdata1 = {sram_rdata, line_lower};
-assign wdata2 = {sram_rdata, line_lower};
-assign wdata3 = {sram_rdata, line_lower};
-
-assign wtag0  = tag_cs;
-assign wtag1  = tag_cs;
-assign wtag2  = tag_cs;
-assign wtag3  = tag_cs;
-
-assign wv0  = 1'b1;
-assign wv1  = 1'b1;
-assign wv2  = 1'b1;
-assign wv3  = 1'b1;
-
-assign waddr0 = index_cs[5:0];
-assign waddr1 = index_cs[5:0];
-assign waddr2 = index_cs[5:0];
-assign waddr3 = index_cs[5:0];
-
-assign cmp_allowin = !cs_valid || cs_ready_go;
-assign cs_ready_go = missfsm_pre==IDLE && !cache_miss || missfsm_pre==GET_1 || missfsm_pre==DROPED_1;
-
-endmodule
-
-// +FHDR----------------------------------------------------------------------------
-//                 Copyright (c) 2023 
-//                       ALL RIGHTS RESERVED
-// ---------------------------------------------------------------------------------
-// Filename      : ysyx_22041752_ICACHE_TAG.v
-// Author        : Cw
-// Created On    : 2023-07-17 17:09
-// Last Modified : 2023-07-24 12:18
-// ---------------------------------------------------------------------------------
-// Description   : 
-//
-//
-// -FHDR----------------------------------------------------------------------------
-module ysyx_22041752_ICACHE_TAG (
-    input clk       ,
-    input reset     ,
-
-    input  [5:0]                              addr,
-    input                                     en  ,
-    input                                     wen ,
-    input  [`ysyx_22041752_ICACHE_TAG_WD-1:0] in  ,
-    output reg [`ysyx_22041752_ICACHE_TAG_WD-1:0] out
-);
-    
-reg [`ysyx_22041752_ICACHE_TAG_WD-1:0] tag [63:0];
-
-genvar i;
-generate
-    for (i = 0; i < 64; i=i+1) begin
-        :Write_Regs
-        always @(posedge clk) begin
-            if (reset) begin
-                tag[i] <= 0;
-            end
-            else if(!wen && !en && (addr == i))
-                tag[i] <= in;
-        end
-    end
-endgenerate
-
-always @(posedge clk) begin
-    if (reset) begin
-        out <= 0;
-    end
-    else if(!en && wen) begin
-        out <= tag[addr];
-    end
-end
-
-endmodule
-// +FHDR----------------------------------------------------------------------------
-//                 Copyright (c) 2023 
-//                       ALL RIGHTS RESERVED
-// ---------------------------------------------------------------------------------
-// Filename      : ysyx_22041752_ICACHE_V.v
-// Author        : Cw
-// Created On    : 2023-06-17 16:46
-// Last Modified : 2023-07-24 12:17
-// ---------------------------------------------------------------------------------
-// Description   : valid table for cache
-//
-//
-// -FHDR----------------------------------------------------------------------------
-module ysyx_22041752_ICACHE_V (
-    input  clk  ,
-    input  reset,
-
-    input  [5:0] addr ,
-    output reg   v_o  ,
-    input        en   ,
-    input        we   ,
-    input        v_i
-);
-    
-reg [63:0] valid;
-
-genvar i;
-generate
-    for (i = 0; i < 64; i=i+1) begin
-        :Write_Regs
-        always @(posedge clk) begin
-            if (reset) begin
-                valid[i] <= 0;
-            end
-            else if(!we && !en && (addr == i))
-                valid[i] <= v_i;
-        end
-    end
-endgenerate
-
-always @(posedge clk) begin
-    if (reset) begin
-        v_o <= 0;
-    end
-    else if(!en && we) begin
-        v_o <= valid[addr];
-    end
-end
-endmodule
-
-// +FHDR----------------------------------------------------------------------------
-//                 Copyright (c) 2023 
-//                       ALL RIGHTS RESERVED
-// ---------------------------------------------------------------------------------
-// Filename      : ysyx_22041752_DCACHE.v
-// Author        : Cw
-// Created On    : 2023-06-17 10:29
-// Last Modified : 2023-07-17 17:32
-// ---------------------------------------------------------------------------------
-// Description   : 4-way set associative cache
-//
-//
-// -FHDR----------------------------------------------------------------------------
-module ysyx_22041752_DCACHE(
-    input  clk       ,
-    input  reset     ,
-    input  fence_i   ,
-    output fence_over,
-
-    input                                    data_en         ,
-    input  [`ysyx_22041752_DATA_WEN_WD -1:0] data_wen        ,
-    input  [`ysyx_22041752_DATA_ADDR_WD-1:0] data_addr       ,
-    input  [`ysyx_22041752_DATA_DATA_WD-1:0] data_wdata      ,
-    output [`ysyx_22041752_DATA_DATA_WD-1:0] data_rdata      ,
-    output                                   cache_miss      ,
-    output                                   write_hit       ,
-
-    output                                   sram_req        ,
-    input                                    sram_ready      ,
-    output [`ysyx_22041752_DATA_WEN_WD -1:0] sram_wen        ,
-    output [`ysyx_22041752_DATA_ADDR_WD-1:0] sram_addr       ,
-    output [`ysyx_22041752_DATA_DATA_WD-1:0] sram_wdata      ,
-    input  [`ysyx_22041752_DATA_DATA_WD-1:0] sram_rdata      ,
-    input                                    sram_valid      ,
-
-    output [  5:0]                           io_sram4_addr   ,
-    output                                   io_sram4_cen    ,
-    output                                   io_sram4_wen    ,
-    output [127:0]                           io_sram4_wmask  ,
-    output [127:0]                           io_sram4_wdata  ,
-    input  [127:0]                           io_sram4_rdata  ,
-    output [  5:0]                           io_sram5_addr   ,
-    output                                   io_sram5_cen    ,
-    output                                   io_sram5_wen    ,
-    output [127:0]                           io_sram5_wmask  ,
-    output [127:0]                           io_sram5_wdata  ,
-    input  [127:0]                           io_sram5_rdata  ,
-    output [  5:0]                           io_sram6_addr   ,
-    output                                   io_sram6_cen    ,
-    output                                   io_sram6_wen    ,
-    output [127:0]                           io_sram6_wmask  ,
-    output [127:0]                           io_sram6_wdata  ,
-    input  [127:0]                           io_sram6_rdata  ,
-    output [  5:0]                           io_sram7_addr   ,
-    output                                   io_sram7_cen    ,
-    output                                   io_sram7_wen    ,
-    output [127:0]                           io_sram7_wmask  ,
-    output [127:0]                           io_sram7_wdata  ,
-    input  [127:0]                           io_sram7_rdata  
-);
-    
-wire [`ysyx_22041752_DCACHE_EN_WD     -1:0] rden           ;
-wire [                                 5:0] raddr          ;
-wire                                        cmp_allowin    ;
-wire                                        rs_to_cs_valid ;
-wire [`ysyx_22041752_DRS_TO_DCS_BUS_WD-1:0] rs_to_cs_bus   ;
-
-ysyx_22041752_DCACHE_RDU U_DCACHE_RDU_0(
-    .clk                            ( clk                           ), 
-    .reset                          ( reset                         ), 
-    .fence_i                        ( fence_i                       ),
-    .data_en                        ( data_en                       ),
-    .data_wen                       ( data_wen                      ),
-    .data_addr                      ( data_addr                     ),
-    .data_wdata                     ( data_wdata                    ),
-    .cmp_allowin                    ( cmp_allowin                   ),
-    .rs_to_cs_valid                 ( rs_to_cs_valid                ),
-    .rs_to_cs_bus                   ( rs_to_cs_bus                  ),
-    .rden                           ( rden                          ),
-    .raddr                          ( raddr                         )
-);
-
-wire [`ysyx_22041752_DCACHE_TAG_WD  -1:0]  tag0 ;
-wire [`ysyx_22041752_DCACHE_TAG_WD  -1:0]  tag1 ;
-wire [`ysyx_22041752_DCACHE_TAG_WD  -1:0]  tag2 ;
-wire [`ysyx_22041752_DCACHE_TAG_WD  -1:0]  tag3 ;
-wire [128                           -1:0]  data0;
-wire [128                           -1:0]  data1;
-wire [128                           -1:0]  data2;
-wire [128                           -1:0]  data3;
-wire                                       v0   ;
-wire                                       v1   ;
-wire                                       v2   ;
-wire                                       v3   ;
-wire                                       d0   ;
-wire                                       d1   ;
-wire                                       d2   ;
-wire                                       d3   ;
-wire                                       wen0 ;
-wire                                       wen1 ;
-wire                                       wen2 ;
-wire                                       wen3 ;
-wire [128                           -1:0]  bwen0;
-wire [128                           -1:0]  bwen1;
-wire [128                           -1:0]  bwen2;
-wire [128                           -1:0]  bwen3;
-wire [128                           -1:0]  wdata0;         
-wire [128                           -1:0]  wdata1;         
-wire [128                           -1:0]  wdata2;         
-wire [128                           -1:0]  wdata3;         
-wire [`ysyx_22041752_DCACHE_TAG_WD  -1:0]  wtag0 ;
-wire [`ysyx_22041752_DCACHE_TAG_WD  -1:0]  wtag1 ;
-wire [`ysyx_22041752_DCACHE_TAG_WD  -1:0]  wtag2 ;
-wire [`ysyx_22041752_DCACHE_TAG_WD  -1:0]  wtag3 ;
-wire                                       wv0   ;
-wire                                       wv1   ;
-wire                                       wv2   ;
-wire                                       wv3   ;
-wire                                       wd0   ;
-wire                                       wd1   ;
-wire                                       wd2   ;
-wire                                       wd3   ;
-wire [                               5:0]  waddr0;
-wire [                               5:0]  waddr1;
-wire [                               5:0]  waddr2;
-wire [                               5:0]  waddr3;
-
-ysyx_22041752_DCACHE_CMP U_DCACHE_CMP_0(
-    .clk            ( clk                   ),
-    .reset          ( reset                 ),
-
-    .cmp_allowin    ( cmp_allowin           ),
-    .rs_to_cs_valid ( rs_to_cs_valid        ),
-    .rs_to_cs_bus   ( rs_to_cs_bus          ),
-
-    .tag0           ( tag0                  ),
-    .tag1           ( tag1                  ),
-    .tag2           ( tag2                  ),
-    .tag3           ( tag3                  ),
-
-    .data0          ( data0                 ),
-    .data1          ( data1                 ),
-    .data2          ( data2                 ),
-    .data3          ( data3                 ),
-
-    .valid          ( {v3,v2,v1,v0}         ),
-    .dirty          ( {d3,d2,d1,d0}         ),
-    .wen            ( {wen3,wen2,wen1,wen0} ),
-
-    .bwen0          ( bwen0                 ),
-    .wdata0         ( wdata0                ),
-    .waddr0         ( waddr0                ),
-    .bwen1          ( bwen1                 ),
-    .wdata1         ( wdata1                ),
-    .waddr1         ( waddr1                ),
-    .bwen2          ( bwen2                 ),
-    .wdata2         ( wdata2                ),
-    .waddr2         ( waddr2                ),
-    .bwen3          ( bwen3                 ),
-    .wdata3         ( wdata3                ),
-    .waddr3         ( waddr3                ),
-    .wtag0          ( wtag0                 ),
-    .wtag1          ( wtag1                 ),
-    .wtag2          ( wtag2                 ),
-    .wtag3          ( wtag3                 ),
-    .wv0            ( wv0                   ),
-    .wv1            ( wv1                   ),
-    .wv2            ( wv2                   ),
-    .wv3            ( wv3                   ),
-    .wd0            ( wd0                   ),
-    .wd1            ( wd1                   ),
-    .wd2            ( wd2                   ),
-    .wd3            ( wd3                   ),
-
-    .data_rdata     ( data_rdata            ),
-    .cache_miss     ( cache_miss            ),
-    .write_hit      ( write_hit             ),
-    .fence_over     ( fence_over            ),
-
-    .sram_req       ( sram_req              ),
-    .sram_ready     ( sram_ready            ),
-    .sram_wen       ( sram_wen              ),
-    .sram_addr      ( sram_addr             ),
-    .sram_wdata     ( sram_wdata            ),
-    .sram_rdata     ( sram_rdata            ),
-    .sram_valid     ( sram_valid            )
-);
-
-// the first way data
-assign data0          = io_sram4_rdata;
-assign io_sram4_cen   = rden[0]&wen0;
-assign io_sram4_wen   = wen0;
-assign io_sram4_wmask = bwen0;
-assign io_sram4_addr  = !wen0 ? waddr0 : raddr;
-assign io_sram4_wdata = wdata0;
-
-// the first way tag
-ysyx_22041752_DCACHE_TAG U_DCACHE_TAG_0(
-    .clk                            ( clk                           ),
-    .reset                          ( reset                         ),
-    .addr                           (!wen0 ? waddr0 : raddr         ),
-    .en                             ( rden[0]&wen0                  ),
-    .wen                            ( wen0                          ),
-    .in                             ( wtag0                         ),
-    .out                            ( tag0                          )
-);
-
-// the first way valid 
-ysyx_22041752_DCACHE_VD U_DCACHE_V_0(
-    .clk                            ( clk                       ),
-    .reset                          ( reset                     ),
-    .addr                           (!wen0 ? waddr0 : raddr     ),
-    .o                              ( v0                        ),
-    .en                             ( rden[0]&wen0              ),
-    .we                             ( wen0                      ),
-    .in                             ( wv0                       )
-);
-
-// the first way dirty
-ysyx_22041752_DCACHE_VD U_DCACHE_D_0(
-    .clk                            ( clk                       ),
-    .reset                          ( reset                     ),
-    .addr                           (!wen0 ? waddr0 : raddr     ),
-    .o                              ( d0                        ),
-    .en                             ( rden[0]&wen0              ),
-    .we                             ( wen0                      ),
-    .in                             ( wd0                       )
-);
-
-// the second way data
-assign data1          = io_sram5_rdata;
-assign io_sram5_cen   = rden[1]&wen1;
-assign io_sram5_wen   = wen1;
-assign io_sram5_wmask = bwen1;
-assign io_sram5_addr  = !wen1 ? waddr1 : raddr;
-assign io_sram5_wdata = wdata1;
-
-// the second way tag
-ysyx_22041752_DCACHE_TAG U_DCACHE_TAG_1(
-    .clk                            ( clk                           ),
-    .reset                          ( reset                         ),
-    .addr                           (!wen1 ? waddr1 : raddr         ),
-    .en                             ( rden[1]&wen1                  ),
-    .wen                            ( wen1                          ),
-    .in                             ( wtag1                         ),
-    .out                            ( tag1                          )
-);
-
-// the second way valid
-ysyx_22041752_DCACHE_VD U_DCACHE_V_1(
-    .clk                            ( clk                       ),
-    .reset                          ( reset                     ),
-    .addr                           (!wen1 ? waddr1 : raddr     ),
-    .o                              ( v1                        ),
-    .en                             ( rden[1]&wen1              ),
-    .we                             ( wen1                      ),
-    .in                             ( wv1                       )
-);
-
-// the second way dirty
-ysyx_22041752_DCACHE_VD U_DCACHE_D_1(
-    .clk                            ( clk                       ),
-    .reset                          ( reset                     ),
-    .addr                           (!wen1 ? waddr1 : raddr     ),
-    .o                              ( d1                        ),
-    .en                             ( rden[1]&wen1              ),
-    .we                             ( wen1                      ),
-    .in                             ( wd1                       )
-);
-
-// the third way data
-assign data2          = io_sram6_rdata;
-assign io_sram6_cen   = rden[2]&wen2;
-assign io_sram6_wen   = wen2;
-assign io_sram6_wmask = bwen2;
-assign io_sram6_addr  = !wen2 ? waddr2 : raddr;
-assign io_sram6_wdata = wdata2;
-
-// the third way tag
-ysyx_22041752_DCACHE_TAG U_DCACHE_TAG_2(
-    .clk                            ( clk                           ),
-    .reset                          ( reset                         ),
-    .addr                           (!wen2 ? waddr2 : raddr         ),
-    .en                             ( rden[2]&wen2                  ),
-    .wen                            ( wen2                          ),
-    .in                             ( wtag2                         ),
-    .out                            ( tag2                          )
-);
-
-// the third way valid 
-ysyx_22041752_DCACHE_VD U_DCACHE_V_2(
-    .clk                            ( clk                       ),
-    .reset                          ( reset                     ),
-    .addr                           (!wen2 ? waddr2 : raddr     ),
-    .o                              ( v2                        ),
-    .en                             ( rden[2]&wen2              ),
-    .we                             ( wen2                      ),
-    .in                             ( wv2                       )
-);
-
-// the third way dirty
-ysyx_22041752_DCACHE_VD U_DCACHE_D_2(
-    .clk                            ( clk                       ),
-    .reset                          ( reset                     ),
-    .addr                           (!wen2 ? waddr2 : raddr     ),
-    .o                              ( d2                        ),
-    .en                             ( rden[2]&wen2              ),
-    .we                             ( wen2                      ),
-    .in                             ( wd2                       )
-);
-
-// the fourth way data
-assign data3          = io_sram7_rdata;
-assign io_sram7_cen   = rden[3]&wen3;
-assign io_sram7_wen   = wen3;
-assign io_sram7_wmask = bwen3;
-assign io_sram7_addr  = !wen3 ? waddr3 : raddr;
-assign io_sram7_wdata = wdata3;
-
-// the fourth way tag
-ysyx_22041752_DCACHE_TAG U_DCACHE_TAG_3(
-    .clk                            ( clk                           ),
-    .reset                          ( reset                         ),
-    .addr                           (!wen3 ? waddr3 : raddr         ),
-    .en                             ( rden[3]&wen3                  ),
-    .wen                            ( wen3                          ),
-    .in                             ( wtag3                         ),
-    .out                            ( tag3                          )
-);
-
-// the fourth way valid 
-ysyx_22041752_DCACHE_VD U_DCACHE_V_3(
-    .clk                            ( clk                       ),
-    .reset                          ( reset                     ),
-    .addr                           (!wen3 ? waddr3 : raddr     ),
-    .o                              ( v3                        ),
-    .en                             ( rden[3]&wen3              ),
-    .we                             ( wen3                      ),
-    .in                             ( wv3                       )
-);
-
-// the fourth way dirty
-ysyx_22041752_DCACHE_VD U_DCACHE_D_3(
-    .clk                            ( clk                       ),
-    .reset                          ( reset                     ),
-    .addr                           (!wen3 ? waddr3 : raddr     ),
-    .o                              ( d3                        ),
-    .en                             ( rden[3]&wen3              ),
-    .we                             ( wen3                      ),
-    .in                             ( wd3                       )
-);
-endmodule
-
-// +FHDR----------------------------------------------------------------------------
-//                 Copyright (c) 2023 
-//                       ALL RIGHTS RESERVED
-// ---------------------------------------------------------------------------------
 // Filename      : ysyx_22041752_DCACHE_RDU.v
 // Author        : Cw
 // Created On    : 2023-06-17 11:07
@@ -5209,7 +4860,7 @@ endmodule
 // Filename      : ysyx_22041752_DCACHE_CMP.v
 // Author        : Cw
 // Created On    : 2023-06-17 11:07
-// Last Modified : 2023-07-24 12:25
+// Last Modified : 2024-03-13 22:33
 // ---------------------------------------------------------------------------------
 // Description   : 
 //
@@ -5626,15 +5277,11 @@ assign bwen1  = ~(missfsm_nxt==READ_DONE_1 && replace==1 ? {128{1'b1}} : offset_
 assign bwen2  = ~(missfsm_nxt==READ_DONE_1 && replace==2 ? {128{1'b1}} : offset_cs[`ysyx_22041752_DCACHE_OFFSET_WD-1] ? {data_wen_bits64,64'b0} : {64'b0,data_wen_bits64});
 assign bwen3  = ~(missfsm_nxt==READ_DONE_1 && replace==3 ? {128{1'b1}} : offset_cs[`ysyx_22041752_DCACHE_OFFSET_WD-1] ? {data_wen_bits64,64'b0} : {64'b0,data_wen_bits64});
 
-reg [127:0] write_newline; 
-always @(*) begin
-    if (offset_cs[`ysyx_22041752_DCACHE_OFFSET_WD-1]) begin
-        write_newline = {(sram_rdata& ~data_wen_bits64) | (data_wen_bits64&data_wdata),line_lower};
-    end
-    else begin
-        write_newline = {sram_rdata,(line_lower& ~data_wen_bits64)|(data_wen_bits64&data_wdata)};
-    end
-end
+wire [127:0] write_newline; 
+assign write_newline = offset_cs[`ysyx_22041752_DCACHE_OFFSET_WD-1]                               ? 
+                       {(sram_rdata& ~data_wen_bits64) | (data_wen_bits64&data_wdata),line_lower} :
+                       {sram_rdata,(line_lower& ~data_wen_bits64)|(data_wen_bits64&data_wdata)}   ;
+
 
 assign wdata0 = write_hit ? {2{data_wdata}} : miss_read ? {sram_rdata, line_lower} : write_newline;
 assign wdata1 = write_hit ? {2{data_wdata}} : miss_read ? {sram_rdata, line_lower} : write_newline;
@@ -5768,3 +5415,1019 @@ end
 
 endmodule
 
+// +FHDR----------------------------------------------------------------------------
+//                 Copyright (c) 2023 
+//                       ALL RIGHTS RESERVED
+// ---------------------------------------------------------------------------------
+// Filename      : ysyx_22041752_DCACHE.v
+// Author        : Cw
+// Created On    : 2023-06-17 10:29
+// Last Modified : 2023-07-17 17:32
+// ---------------------------------------------------------------------------------
+// Description   : 4-way set associative cache
+//
+//
+// -FHDR----------------------------------------------------------------------------
+module ysyx_22041752_DCACHE(
+    input  clk       ,
+    input  reset     ,
+    input  fence_i   ,
+    output fence_over,
+
+    input                                    data_en         ,
+    input  [`ysyx_22041752_DATA_WEN_WD -1:0] data_wen        ,
+    input  [`ysyx_22041752_DATA_ADDR_WD-1:0] data_addr       ,
+    input  [`ysyx_22041752_DATA_DATA_WD-1:0] data_wdata      ,
+    output [`ysyx_22041752_DATA_DATA_WD-1:0] data_rdata      ,
+    output                                   cache_miss      ,
+    output                                   write_hit       ,
+
+    output                                   sram_req        ,
+    input                                    sram_ready      ,
+    output [`ysyx_22041752_DATA_WEN_WD -1:0] sram_wen        ,
+    output [`ysyx_22041752_DATA_ADDR_WD-1:0] sram_addr       ,
+    output [`ysyx_22041752_DATA_DATA_WD-1:0] sram_wdata      ,
+    input  [`ysyx_22041752_DATA_DATA_WD-1:0] sram_rdata      ,
+    input                                    sram_valid      ,
+
+    output [  5:0]                           io_sram4_addr   ,
+    output                                   io_sram4_cen    ,
+    output                                   io_sram4_wen    ,
+    output [127:0]                           io_sram4_wmask  ,
+    output [127:0]                           io_sram4_wdata  ,
+    input  [127:0]                           io_sram4_rdata  ,
+    output [  5:0]                           io_sram5_addr   ,
+    output                                   io_sram5_cen    ,
+    output                                   io_sram5_wen    ,
+    output [127:0]                           io_sram5_wmask  ,
+    output [127:0]                           io_sram5_wdata  ,
+    input  [127:0]                           io_sram5_rdata  ,
+    output [  5:0]                           io_sram6_addr   ,
+    output                                   io_sram6_cen    ,
+    output                                   io_sram6_wen    ,
+    output [127:0]                           io_sram6_wmask  ,
+    output [127:0]                           io_sram6_wdata  ,
+    input  [127:0]                           io_sram6_rdata  ,
+    output [  5:0]                           io_sram7_addr   ,
+    output                                   io_sram7_cen    ,
+    output                                   io_sram7_wen    ,
+    output [127:0]                           io_sram7_wmask  ,
+    output [127:0]                           io_sram7_wdata  ,
+    input  [127:0]                           io_sram7_rdata  
+);
+    
+wire [`ysyx_22041752_DCACHE_EN_WD     -1:0] rden           ;
+wire [                                 5:0] raddr          ;
+wire                                        cmp_allowin    ;
+wire                                        rs_to_cs_valid ;
+wire [`ysyx_22041752_DRS_TO_DCS_BUS_WD-1:0] rs_to_cs_bus   ;
+
+ysyx_22041752_DCACHE_RDU U_DCACHE_RDU_0(
+    .clk                            ( clk                           ), 
+    .reset                          ( reset                         ), 
+    .fence_i                        ( fence_i                       ),
+    .data_en                        ( data_en                       ),
+    .data_wen                       ( data_wen                      ),
+    .data_addr                      ( data_addr                     ),
+    .data_wdata                     ( data_wdata                    ),
+    .cmp_allowin                    ( cmp_allowin                   ),
+    .rs_to_cs_valid                 ( rs_to_cs_valid                ),
+    .rs_to_cs_bus                   ( rs_to_cs_bus                  ),
+    .rden                           ( rden                          ),
+    .raddr                          ( raddr                         )
+);
+
+wire [`ysyx_22041752_DCACHE_TAG_WD  -1:0]  tag0 ;
+wire [`ysyx_22041752_DCACHE_TAG_WD  -1:0]  tag1 ;
+wire [`ysyx_22041752_DCACHE_TAG_WD  -1:0]  tag2 ;
+wire [`ysyx_22041752_DCACHE_TAG_WD  -1:0]  tag3 ;
+wire [128                           -1:0]  data0;
+wire [128                           -1:0]  data1;
+wire [128                           -1:0]  data2;
+wire [128                           -1:0]  data3;
+wire                                       v0   ;
+wire                                       v1   ;
+wire                                       v2   ;
+wire                                       v3   ;
+wire                                       d0   ;
+wire                                       d1   ;
+wire                                       d2   ;
+wire                                       d3   ;
+wire                                       wen0 ;
+wire                                       wen1 ;
+wire                                       wen2 ;
+wire                                       wen3 ;
+wire [128                           -1:0]  bwen0;
+wire [128                           -1:0]  bwen1;
+wire [128                           -1:0]  bwen2;
+wire [128                           -1:0]  bwen3;
+wire [128                           -1:0]  wdata0;         
+wire [128                           -1:0]  wdata1;         
+wire [128                           -1:0]  wdata2;         
+wire [128                           -1:0]  wdata3;         
+wire [`ysyx_22041752_DCACHE_TAG_WD  -1:0]  wtag0 ;
+wire [`ysyx_22041752_DCACHE_TAG_WD  -1:0]  wtag1 ;
+wire [`ysyx_22041752_DCACHE_TAG_WD  -1:0]  wtag2 ;
+wire [`ysyx_22041752_DCACHE_TAG_WD  -1:0]  wtag3 ;
+wire                                       wv0   ;
+wire                                       wv1   ;
+wire                                       wv2   ;
+wire                                       wv3   ;
+wire                                       wd0   ;
+wire                                       wd1   ;
+wire                                       wd2   ;
+wire                                       wd3   ;
+wire [                               5:0]  waddr0;
+wire [                               5:0]  waddr1;
+wire [                               5:0]  waddr2;
+wire [                               5:0]  waddr3;
+
+ysyx_22041752_DCACHE_CMP U_DCACHE_CMP_0(
+    .clk            ( clk                   ),
+    .reset          ( reset                 ),
+
+    .cmp_allowin    ( cmp_allowin           ),
+    .rs_to_cs_valid ( rs_to_cs_valid        ),
+    .rs_to_cs_bus   ( rs_to_cs_bus          ),
+
+    .tag0           ( tag0                  ),
+    .tag1           ( tag1                  ),
+    .tag2           ( tag2                  ),
+    .tag3           ( tag3                  ),
+
+    .data0          ( data0                 ),
+    .data1          ( data1                 ),
+    .data2          ( data2                 ),
+    .data3          ( data3                 ),
+
+    .valid          ( {v3,v2,v1,v0}         ),
+    .dirty          ( {d3,d2,d1,d0}         ),
+    .wen            ( {wen3,wen2,wen1,wen0} ),
+
+    .bwen0          ( bwen0                 ),
+    .wdata0         ( wdata0                ),
+    .waddr0         ( waddr0                ),
+    .bwen1          ( bwen1                 ),
+    .wdata1         ( wdata1                ),
+    .waddr1         ( waddr1                ),
+    .bwen2          ( bwen2                 ),
+    .wdata2         ( wdata2                ),
+    .waddr2         ( waddr2                ),
+    .bwen3          ( bwen3                 ),
+    .wdata3         ( wdata3                ),
+    .waddr3         ( waddr3                ),
+    .wtag0          ( wtag0                 ),
+    .wtag1          ( wtag1                 ),
+    .wtag2          ( wtag2                 ),
+    .wtag3          ( wtag3                 ),
+    .wv0            ( wv0                   ),
+    .wv1            ( wv1                   ),
+    .wv2            ( wv2                   ),
+    .wv3            ( wv3                   ),
+    .wd0            ( wd0                   ),
+    .wd1            ( wd1                   ),
+    .wd2            ( wd2                   ),
+    .wd3            ( wd3                   ),
+
+    .data_rdata     ( data_rdata            ),
+    .cache_miss     ( cache_miss            ),
+    .write_hit      ( write_hit             ),
+    .fence_over     ( fence_over            ),
+
+    .sram_req       ( sram_req              ),
+    .sram_ready     ( sram_ready            ),
+    .sram_wen       ( sram_wen              ),
+    .sram_addr      ( sram_addr             ),
+    .sram_wdata     ( sram_wdata            ),
+    .sram_rdata     ( sram_rdata            ),
+    .sram_valid     ( sram_valid            )
+);
+
+// the first way data
+assign data0          = io_sram4_rdata;
+assign io_sram4_cen   = rden[0]&wen0;
+assign io_sram4_wen   = wen0;
+assign io_sram4_wmask = bwen0;
+assign io_sram4_addr  = !wen0 ? waddr0 : raddr;
+assign io_sram4_wdata = wdata0;
+
+// the first way tag
+ysyx_22041752_DCACHE_TAG U_DCACHE_TAG_0(
+    .clk                            ( clk                           ),
+    .reset                          ( reset                         ),
+    .addr                           (!wen0 ? waddr0 : raddr         ),
+    .en                             ( rden[0]&wen0                  ),
+    .wen                            ( wen0                          ),
+    .in                             ( wtag0                         ),
+    .out                            ( tag0                          )
+);
+
+// the first way valid 
+ysyx_22041752_DCACHE_VD U_DCACHE_V_0(
+    .clk                            ( clk                       ),
+    .reset                          ( reset                     ),
+    .addr                           (!wen0 ? waddr0 : raddr     ),
+    .o                              ( v0                        ),
+    .en                             ( rden[0]&wen0              ),
+    .we                             ( wen0                      ),
+    .in                             ( wv0                       )
+);
+
+// the first way dirty
+ysyx_22041752_DCACHE_VD U_DCACHE_D_0(
+    .clk                            ( clk                       ),
+    .reset                          ( reset                     ),
+    .addr                           (!wen0 ? waddr0 : raddr     ),
+    .o                              ( d0                        ),
+    .en                             ( rden[0]&wen0              ),
+    .we                             ( wen0                      ),
+    .in                             ( wd0                       )
+);
+
+// the second way data
+assign data1          = io_sram5_rdata;
+assign io_sram5_cen   = rden[1]&wen1;
+assign io_sram5_wen   = wen1;
+assign io_sram5_wmask = bwen1;
+assign io_sram5_addr  = !wen1 ? waddr1 : raddr;
+assign io_sram5_wdata = wdata1;
+
+// the second way tag
+ysyx_22041752_DCACHE_TAG U_DCACHE_TAG_1(
+    .clk                            ( clk                           ),
+    .reset                          ( reset                         ),
+    .addr                           (!wen1 ? waddr1 : raddr         ),
+    .en                             ( rden[1]&wen1                  ),
+    .wen                            ( wen1                          ),
+    .in                             ( wtag1                         ),
+    .out                            ( tag1                          )
+);
+
+// the second way valid
+ysyx_22041752_DCACHE_VD U_DCACHE_V_1(
+    .clk                            ( clk                       ),
+    .reset                          ( reset                     ),
+    .addr                           (!wen1 ? waddr1 : raddr     ),
+    .o                              ( v1                        ),
+    .en                             ( rden[1]&wen1              ),
+    .we                             ( wen1                      ),
+    .in                             ( wv1                       )
+);
+
+// the second way dirty
+ysyx_22041752_DCACHE_VD U_DCACHE_D_1(
+    .clk                            ( clk                       ),
+    .reset                          ( reset                     ),
+    .addr                           (!wen1 ? waddr1 : raddr     ),
+    .o                              ( d1                        ),
+    .en                             ( rden[1]&wen1              ),
+    .we                             ( wen1                      ),
+    .in                             ( wd1                       )
+);
+
+// the third way data
+assign data2          = io_sram6_rdata;
+assign io_sram6_cen   = rden[2]&wen2;
+assign io_sram6_wen   = wen2;
+assign io_sram6_wmask = bwen2;
+assign io_sram6_addr  = !wen2 ? waddr2 : raddr;
+assign io_sram6_wdata = wdata2;
+
+// the third way tag
+ysyx_22041752_DCACHE_TAG U_DCACHE_TAG_2(
+    .clk                            ( clk                           ),
+    .reset                          ( reset                         ),
+    .addr                           (!wen2 ? waddr2 : raddr         ),
+    .en                             ( rden[2]&wen2                  ),
+    .wen                            ( wen2                          ),
+    .in                             ( wtag2                         ),
+    .out                            ( tag2                          )
+);
+
+// the third way valid 
+ysyx_22041752_DCACHE_VD U_DCACHE_V_2(
+    .clk                            ( clk                       ),
+    .reset                          ( reset                     ),
+    .addr                           (!wen2 ? waddr2 : raddr     ),
+    .o                              ( v2                        ),
+    .en                             ( rden[2]&wen2              ),
+    .we                             ( wen2                      ),
+    .in                             ( wv2                       )
+);
+
+// the third way dirty
+ysyx_22041752_DCACHE_VD U_DCACHE_D_2(
+    .clk                            ( clk                       ),
+    .reset                          ( reset                     ),
+    .addr                           (!wen2 ? waddr2 : raddr     ),
+    .o                              ( d2                        ),
+    .en                             ( rden[2]&wen2              ),
+    .we                             ( wen2                      ),
+    .in                             ( wd2                       )
+);
+
+// the fourth way data
+assign data3          = io_sram7_rdata;
+assign io_sram7_cen   = rden[3]&wen3;
+assign io_sram7_wen   = wen3;
+assign io_sram7_wmask = bwen3;
+assign io_sram7_addr  = !wen3 ? waddr3 : raddr;
+assign io_sram7_wdata = wdata3;
+
+// the fourth way tag
+ysyx_22041752_DCACHE_TAG U_DCACHE_TAG_3(
+    .clk                            ( clk                           ),
+    .reset                          ( reset                         ),
+    .addr                           (!wen3 ? waddr3 : raddr         ),
+    .en                             ( rden[3]&wen3                  ),
+    .wen                            ( wen3                          ),
+    .in                             ( wtag3                         ),
+    .out                            ( tag3                          )
+);
+
+// the fourth way valid 
+ysyx_22041752_DCACHE_VD U_DCACHE_V_3(
+    .clk                            ( clk                       ),
+    .reset                          ( reset                     ),
+    .addr                           (!wen3 ? waddr3 : raddr     ),
+    .o                              ( v3                        ),
+    .en                             ( rden[3]&wen3              ),
+    .we                             ( wen3                      ),
+    .in                             ( wv3                       )
+);
+
+// the fourth way dirty
+ysyx_22041752_DCACHE_VD U_DCACHE_D_3(
+    .clk                            ( clk                       ),
+    .reset                          ( reset                     ),
+    .addr                           (!wen3 ? waddr3 : raddr     ),
+    .o                              ( d3                        ),
+    .en                             ( rden[3]&wen3              ),
+    .we                             ( wen3                      ),
+    .in                             ( wd3                       )
+);
+endmodule
+
+// +FHDR----------------------------------------------------------------------------
+//                 Copyright (c) 2022 
+//                       ALL RIGHTS RESERVED
+// ---------------------------------------------------------------------------------
+// Filename      : ysyx_22041752.v
+// Author        : Cw
+// Created On    : 2022-10-17 21:44
+// Last Modified : 2024-03-19 16:06
+// ---------------------------------------------------------------------------------
+// Description   : 
+//
+//
+// -FHDR----------------------------------------------------------------------------
+module ysyx_22041752(
+    input         clock,
+    input         reset,
+
+    input          io_interrupt     ,
+    output         io_slave_awready ,
+    input          io_slave_awvalid ,
+    input  [3:0]   io_slave_awid    ,
+    input  [31:0]  io_slave_awaddr  ,
+    input  [7:0]   io_slave_awlen   ,
+    input  [2:0]   io_slave_awsize  ,
+    input  [1:0]   io_slave_awburst ,
+    output         io_slave_wready  ,
+    input          io_slave_wvalid  ,
+    input  [63:0]  io_slave_wdata   ,
+    input  [7:0]   io_slave_wstrb   ,
+    input          io_slave_wlast   ,
+    input          io_slave_bready  ,
+    output         io_slave_bvalid  ,
+    output [3:0]   io_slave_bid     ,
+    output [1:0]   io_slave_bresp   ,
+    output         io_slave_arready ,
+    input          io_slave_arvalid ,
+    input  [3:0]   io_slave_arid    ,
+    input  [31:0]  io_slave_araddr  ,
+    input  [7:0]   io_slave_arlen   ,
+    input  [2:0]   io_slave_arsize  ,
+    input  [1:0]   io_slave_arburst ,
+    input          io_slave_rready  ,
+    output         io_slave_rvalid  ,
+    output [3:0]   io_slave_rid     ,
+    output [63:0]  io_slave_rdata   ,
+    output [1:0]   io_slave_rresp   ,
+    output         io_slave_rlast   ,
+
+    input          io_master_awready ,
+    output         io_master_awvalid ,
+    output [3:0]   io_master_awid    ,
+    output [31:0]  io_master_awaddr  ,
+    output [7:0]   io_master_awlen   ,
+    output [2:0]   io_master_awsize  ,
+    output [1:0]   io_master_awburst ,
+    input          io_master_wready  ,
+    output         io_master_wvalid  ,
+    output [63:0]  io_master_wdata   ,
+    output [7:0]   io_master_wstrb   ,
+    output         io_master_wlast   ,
+    output         io_master_bready  ,
+    input          io_master_bvalid  ,
+    input  [3:0]   io_master_bid     ,
+    input  [1:0]   io_master_bresp   ,
+    input          io_master_arready ,
+    output         io_master_arvalid ,
+    output [3:0]   io_master_arid    ,
+    output [31:0]  io_master_araddr  ,
+    output [7:0]   io_master_arlen   ,
+    output [2:0]   io_master_arsize  ,
+    output [1:0]   io_master_arburst ,
+    output         io_master_rready  ,
+    input          io_master_rvalid  ,
+    input  [3:0]   io_master_rid     ,
+    input  [63:0]  io_master_rdata   ,
+    input  [1:0]   io_master_rresp   ,
+    input          io_master_rlast   ,
+
+    output [5:0]   io_sram0_addr     ,
+    output         io_sram0_cen      ,
+    output         io_sram0_wen      ,
+    output [127:0] io_sram0_wmask    ,
+    output [127:0] io_sram0_wdata    ,
+    input  [127:0] io_sram0_rdata    ,
+    output [5:0]   io_sram1_addr     ,
+    output         io_sram1_cen      ,
+    output         io_sram1_wen      ,
+    output [127:0] io_sram1_wmask    ,
+    output [127:0] io_sram1_wdata    ,
+    input  [127:0] io_sram1_rdata    ,
+    output [5:0]   io_sram2_addr     ,
+    output         io_sram2_cen      ,
+    output         io_sram2_wen      ,
+    output [127:0] io_sram2_wmask    ,
+    output [127:0] io_sram2_wdata    ,
+    input  [127:0] io_sram2_rdata    ,
+    output [5:0]   io_sram3_addr     ,
+    output         io_sram3_cen      ,
+    output         io_sram3_wen      ,
+    output [127:0] io_sram3_wmask    ,
+    output [127:0] io_sram3_wdata    ,
+    input  [127:0] io_sram3_rdata    ,
+    output [5:0]   io_sram4_addr     ,
+    output         io_sram4_cen      ,
+    output         io_sram4_wen      ,
+    output [127:0] io_sram4_wmask    ,
+    output [127:0] io_sram4_wdata    ,
+    input  [127:0] io_sram4_rdata    ,
+    output [5:0]   io_sram5_addr     ,
+    output         io_sram5_cen      ,
+    output         io_sram5_wen      ,
+    output [127:0] io_sram5_wmask    ,
+    output [127:0] io_sram5_wdata    ,
+    input  [127:0] io_sram5_rdata    ,
+    output [5:0]   io_sram6_addr     ,
+    output         io_sram6_cen      ,
+    output         io_sram6_wen      ,
+    output [127:0] io_sram6_wmask    ,
+    output [127:0] io_sram6_wdata    ,
+    input  [127:0] io_sram6_rdata    ,
+    output [5:0]   io_sram7_addr     ,
+    output         io_sram7_cen      ,
+    output         io_sram7_wen      ,
+    output [127:0] io_sram7_wmask    ,
+    output [127:0] io_sram7_wdata    ,
+    input  [127:0] io_sram7_rdata    
+);
+
+assign io_slave_awready= 0; 
+assign io_slave_wready = 0;
+assign io_slave_bvalid = 0;   
+assign io_slave_bid    = 0; 
+assign io_slave_bresp  = 0; 
+assign io_slave_arready= 0; 
+assign io_slave_rvalid = 0; 
+assign io_slave_rid    = 0; 
+assign io_slave_rdata  = 0; 
+assign io_slave_rresp  = 0; 
+assign io_slave_rlast  = 0; 
+
+wire         int_t;
+wire         fence_i;
+wire         fence_over;
+wire [`ysyx_22041752_PC_WD-1:0] fence_over_pc;
+wire         flush;
+wire [`ysyx_22041752_PC_WD-1:0] flush_pc  ;
+wire         bjpre_error;       
+wire [`ysyx_22041752_PC_WD-1:0] bjpre_pc  ;
+wire         bjpre_pc_p4;
+
+wire         ds_allowin;
+wire         es_allowin;
+wire         ms_allowin;
+wire         ws_allowin;
+wire         fs_to_ds_valid;
+wire         ds_to_es_valid;
+wire         es_to_ms_valid;
+wire         ms_to_ws_valid;
+wire [`ysyx_22041752_FS_TO_DS_BUS_WD -1:0]   fs_to_ds_bus;
+wire [`ysyx_22041752_DS_TO_ES_BUS_WD -1:0]   ds_to_es_bus;
+wire [`ysyx_22041752_ES_TO_MS_BUS_WD -1:0]   es_to_ms_bus;
+wire [`ysyx_22041752_MS_TO_WS_BUS_WD -1:0]   ms_to_ws_bus;
+wire [`ysyx_22041752_WS_TO_RF_BUS_WD -1:0]   ws_to_rf_bus;
+wire [`ysyx_22041752_PC_WD           -1:0]   ra_data     ;
+wire [`ysyx_22041752_FORWARD_BUS_WD -1:0]    es_forward_bus;
+wire [`ysyx_22041752_FORWARD_BUS_WD-1:0]     ms_forward_bus;
+wire [`ysyx_22041752_WS_FORWARD_BUS_WD -1:0] ws_forward_bus;
+
+`ifdef DPI_C
+// trace debug interface
+wire [`ysyx_22041752_PC_WD       -1:0] debug_wb_pc      ;
+wire [`ysyx_22041752_PC_WD       -1:0] debug_es_pc      ;
+wire                                   debug_es_bjpre_error; 
+wire                                   debug_es_bj_inst ; 
+wire                                   debug_es_exp     ;
+wire                                   debug_es_mret    ;
+wire                                   debug_es_data_ren;
+wire                                   debug_es_data_wen;
+wire [`ysyx_22041752_DATA_ADDR_WD-1:0] debug_es_data_addr;
+wire [`ysyx_22041752_DATA_DATA_WD-1:0] debug_es_data_wdata;
+wire                                   debug_ws_valid   ;
+wire [`ysyx_22041752_INST_WD     -1:0] debug_ds_inst    ;
+wire [`ysyx_22041752_INST_WD     -1:0] debug_es_inst    ;
+wire [`ysyx_22041752_INST_WD     -1:0] debug_ms_inst    ;
+wire [`ysyx_22041752_DATA_DATA_WD-1:0] debug_ms_data_rdata;
+wire                                   debug_ms_rdata_valid;
+wire [`ysyx_22041752_INST_WD     -1:0] debug_ws_inst    ;
+wire                                   debug_es_out_of_mem;
+wire                                   debug_ms_out_of_mem;
+wire                                   debug_ws_out_of_mem;
+wire [`ysyx_22041752_RF_DATA_WD  -1:0] dpi_regs [`ysyx_22041752_RF_NUM-1:0];
+wire [`ysyx_22041752_RF_DATA_WD  -1:0] dpi_csrs [3:0];
+wire [                            0:0] stop;
+wire                                   debug_icache_miss;
+wire                                   debug_dcache_miss;
+wire                                   debug_dcache_en;
+`endif
+
+wire clk = clock;
+
+// fetch insts interface
+wire                                   inst_en   ;
+wire [`ysyx_22041752_DATA_ADDR_WD-1:0] inst_addr ;
+wire [`ysyx_22041752_INST_WD-1:0]      inst_rdata;
+wire                                   icache_miss;
+// ld/store interface
+wire                                   es_data_en    ;
+wire [`ysyx_22041752_DATA_WEN_WD -1:0] es_data_wen   ;
+wire [`ysyx_22041752_DATA_ADDR_WD-1:0] es_data_addr  ;
+wire [`ysyx_22041752_DATA_DATA_WD-1:0] es_data_wdata ;
+wire [`ysyx_22041752_DATA_DATA_WD-1:0] ms_data_rdata ;
+wire                                   ms_miss       ;
+wire                                   es_write_hit  ;
+
+// IF stage
+ysyx_22041752_IFU U_IFU_0(
+    .clk            (clk            ),
+    .reset          (reset          ),
+    //allowin
+    .ds_allowin     (ds_allowin     ),
+    //outputs
+    .fs_to_ds_valid (fs_to_ds_valid ),
+    .fs_to_ds_bus   (fs_to_ds_bus   ),
+
+    .inst_en        (inst_en        ),
+    .inst_addr      (inst_addr      ),
+    .inst_rdata     (inst_rdata     ),
+    .cache_miss     (icache_miss    ) ,
+
+    .ra_data        (ra_data        ),
+    .flush          (flush          ),
+    .flush_pc       (flush_pc       ),
+    .bjpre_error    (bjpre_error    ),
+    .bjpre_pc       (bjpre_pc       ),
+    .bjpre_pc_p4    (bjpre_pc_p4    ),
+    .fence_over     (fence_over     ),
+    .fence_over_pc  (fence_over_pc  )
+`ifdef DPI_C
+    ,
+    .debug_icache_miss (debug_icache_miss)
+`endif
+);
+
+// ID stage
+ysyx_22041752_IDU U_IDU_0(
+    .clk            ( clk            ),
+    .reset          ( reset          ),
+    .es_allowin     ( es_allowin     ),
+    .ds_allowin     ( ds_allowin     ),
+    .fs_to_ds_valid ( fs_to_ds_valid ),
+    .fs_to_ds_bus   ( fs_to_ds_bus   ),
+    .ds_to_es_valid ( ds_to_es_valid ),
+    .ds_to_es_bus   ( ds_to_es_bus   ),
+    .ws_to_rf_bus   ( ws_to_rf_bus   ),
+    .es_forward_bus ( es_forward_bus ),
+    .ms_forward_bus ( ms_forward_bus ),
+    .ws_forward_bus ( ws_forward_bus ),
+    .ra_data        ( ra_data        ),
+    .flush          ( flush          ),
+    .bjpre_error    ( bjpre_error    ),
+    .fence_over     ( fence_over     )
+`ifdef DPI_C
+    ,
+    .dpi_regs       ( dpi_regs       ),
+    .stop           ( stop           ),
+    .debug_ds_inst  ( debug_ds_inst  )
+`endif
+);
+
+// EXE stage
+ysyx_22041752_EXU U_EXU_0(
+    .clk            ( clk             ),
+    .reset          ( reset           ),
+    .ms_allowin     ( ms_allowin      ),
+    .es_allowin     ( es_allowin      ),
+    .ds_to_es_valid ( ds_to_es_valid  ),
+    .ds_to_es_bus   ( ds_to_es_bus    ),
+    .es_to_ms_valid ( es_to_ms_valid  ),
+    .es_to_ms_bus   ( es_to_ms_bus    ),
+    .es_forward_bus ( es_forward_bus  ),
+    .data_en        ( es_data_en      ),
+    .data_wen       ( es_data_wen     ),
+    .data_addr      ( es_data_addr    ),
+    .data_wdata     ( es_data_wdata   ),
+    .write_hit      ( es_write_hit    ),
+    .fence_i_o      ( fence_i         ),
+    .fence_over     ( fence_over      ),
+    .flush          ( flush           ),
+    .flush_pc       ( flush_pc        ),
+    .int_t_i        ( int_t           ),
+    .bjpre_pc_p4    ( bjpre_pc_p4     ),
+    .bjpre_pc       ( bjpre_pc        ),
+    .bjpre_error    ( bjpre_error     ),
+    .fence_over_pc  ( fence_over_pc   )
+`ifdef DPI_C
+    ,
+    .debug_es_bjpre_error(debug_es_bjpre_error),
+    .dpi_csrs            ( dpi_csrs        ),
+    .es_exp              ( debug_es_exp    ),
+    .es_mret             ( debug_es_mret   ),
+    .debug_es_bj_inst    ( debug_es_bj_inst),
+    .debug_es_data_addr  ( debug_es_data_addr),
+    .debug_es_out_of_mem ( debug_es_out_of_mem),
+    .debug_es_data_ren   ( debug_es_data_ren),
+    .debug_es_data_wen   ( debug_es_data_wen),
+    .debug_es_data_wdata ( debug_es_data_wdata),
+    .debug_es_pc         ( debug_es_pc     ),
+    .debug_ds_inst       ( debug_ds_inst   ),
+    .debug_es_inst       ( debug_es_inst   )
+`endif
+);
+
+// MEM stage
+ysyx_22041752_MEU U_MEU_0(
+    .clk            ( clk             ),
+    .reset          ( reset           ),
+    .ws_allowin     ( ws_allowin      ),
+    .ms_allowin     ( ms_allowin      ),
+    .es_to_ms_valid ( es_to_ms_valid  ),
+    .es_to_ms_bus   ( es_to_ms_bus    ),
+    .ms_to_ws_valid ( ms_to_ws_valid  ),
+    .ms_to_ws_bus   ( ms_to_ws_bus    ),
+    .data_rdata     ( ms_data_rdata   ),
+    .cache_miss     ( ms_miss         ),
+    .ms_forward_bus ( ms_forward_bus  )
+`ifdef DPI_C
+    ,
+    .debug_es_inst  ( debug_es_inst   ),
+    .debug_ms_inst  ( debug_ms_inst   ),
+    .debug_ms_data_rdata    (debug_ms_data_rdata),
+    .debug_es_out_of_mem    (debug_es_out_of_mem),
+    .debug_ms_out_of_mem    (debug_ms_out_of_mem),
+    .debug_cache_miss       (debug_dcache_miss  ),
+    .debug_ms_rdata_valid   (debug_ms_rdata_valid)
+`endif
+);
+
+// WB stage
+ysyx_22041752_WBU U_WBU_0(
+    .clk                    ( clk               ),
+    .reset                  ( reset             ),
+    .ws_allowin             ( ws_allowin        ),
+    .ms_to_ws_valid         ( ms_to_ws_valid    ),
+    .ms_to_ws_bus           ( ms_to_ws_bus      ),
+    .ws_to_rf_bus           ( ws_to_rf_bus      ),
+    .ws_forward_bus         ( ws_forward_bus    )
+`ifdef DPI_C
+    ,
+    .debug_ws_valid         ( debug_ws_valid    ),
+    .debug_ms_inst          ( debug_ms_inst     ),
+    .debug_ms_out_of_mem    (debug_ms_out_of_mem),
+    .debug_ws_inst          ( debug_ws_inst     ),
+    .debug_ws_out_of_mem    (debug_ws_out_of_mem),
+    .debug_wb_pc	        ( debug_wb_pc	    )
+`endif
+);
+
+wire                                   icache_req       ;
+wire [`ysyx_22041752_DATA_ADDR_WD-1:0] icache_req_addr  ;
+wire                                   icache_ready     ;
+wire                                   icache_valid     ;
+wire [`ysyx_22041752_DATA_DATA_WD-1:0] icache_rdata     ;
+
+ysyx_22041752_ICACHE U_ICACHE_0(
+    .clk                            ( clk                       ),
+    .reset                          ( reset                     ),
+    .flush                          ( flush|bjpre_error         ),
+    .fence_i                        ( fence_i                   ),
+    .inst_en                        ( inst_en                   ),
+    .inst_addr                      ( inst_addr                 ),
+    .inst_rdata                     ( inst_rdata                ),
+    .cache_miss                     ( icache_miss               ),
+    .sram_req                       ( icache_req                ),
+    .sram_ready                     ( icache_ready              ),
+    .sram_addr                      ( icache_req_addr           ),
+    .sram_rdata                     ( icache_rdata              ),
+    .sram_valid                     ( icache_valid              ),
+    .io_sram0_addr                  ( io_sram0_addr             ),
+    .io_sram0_cen                   ( io_sram0_cen              ),
+    .io_sram0_wen                   ( io_sram0_wen              ),
+    .io_sram0_wmask                 ( io_sram0_wmask            ),
+    .io_sram0_wdata                 ( io_sram0_wdata            ),
+    .io_sram0_rdata                 ( io_sram0_rdata            ),
+    .io_sram1_addr                  ( io_sram1_addr             ),
+    .io_sram1_cen                   ( io_sram1_cen              ),
+    .io_sram1_wen                   ( io_sram1_wen              ),
+    .io_sram1_wmask                 ( io_sram1_wmask            ),
+    .io_sram1_wdata                 ( io_sram1_wdata            ),
+    .io_sram1_rdata                 ( io_sram1_rdata            ),
+    .io_sram2_addr                  ( io_sram2_addr             ),
+    .io_sram2_cen                   ( io_sram2_cen              ),
+    .io_sram2_wen                   ( io_sram2_wen              ),
+    .io_sram2_wmask                 ( io_sram2_wmask            ),
+    .io_sram2_wdata                 ( io_sram2_wdata            ),
+    .io_sram2_rdata                 ( io_sram2_rdata            ),
+    .io_sram3_addr                  ( io_sram3_addr             ),
+    .io_sram3_cen                   ( io_sram3_cen              ),
+    .io_sram3_wen                   ( io_sram3_wen              ),
+    .io_sram3_wmask                 ( io_sram3_wmask            ),
+    .io_sram3_wdata                 ( io_sram3_wdata            ),
+    .io_sram3_rdata                 ( io_sram3_rdata            )
+);
+
+wire                                   clint_en   ;
+wire                                   clint_wen  ;
+wire [`ysyx_22041752_DATA_ADDR_WD-1:0] clint_addr ;
+wire [`ysyx_22041752_DATA_DATA_WD-1:0] clint_wdata;
+wire [`ysyx_22041752_DATA_DATA_WD-1:0] clint_rdata;
+
+wire                                   dcache_data_en    ;
+wire [`ysyx_22041752_DATA_WEN_WD -1:0] dcache_data_wen   ;
+wire [`ysyx_22041752_DATA_ADDR_WD-1:0] dcache_data_addr  ;
+wire [`ysyx_22041752_DATA_DATA_WD-1:0] dcache_data_wdata ;
+wire [`ysyx_22041752_DATA_DATA_WD-1:0] dcache_data_rdata ;
+wire                                   dcache_miss       ;
+wire                                   dcache_write_hit  ;
+wire                                   dcache_sram_req   ;
+wire                                   dcache_sram_ready ;
+wire [`ysyx_22041752_DATA_WEN_WD -1:0] dcache_sram_wen   ;
+wire [`ysyx_22041752_DATA_ADDR_WD-1:0] dcache_sram_addr  ;
+wire [`ysyx_22041752_DATA_DATA_WD-1:0] dcache_sram_wdata ;
+wire [`ysyx_22041752_DATA_DATA_WD-1:0] dcache_sram_rdata ;
+wire                                   dcache_sram_valid ;
+
+wire                                   io_data_en    ;
+wire [`ysyx_22041752_DATA_WEN_WD -1:0] io_data_wen   ;
+wire [`ysyx_22041752_DATA_ADDR_WD-1:0] io_data_addr  ;
+wire [`ysyx_22041752_DATA_DATA_WD-1:0] io_data_wdata ;
+wire [`ysyx_22041752_DATA_DATA_WD-1:0] io_data_rdata ;
+wire                                   io_miss       ;
+wire                                   io_sram_req   ;
+wire [2:0]                             io_sram_size  ;
+wire                                   io_sram_ready ;
+wire [`ysyx_22041752_DATA_WEN_WD -1:0] io_sram_wen   ;
+wire [`ysyx_22041752_DATA_ADDR_WD-1:0] io_sram_addr  ;
+wire [`ysyx_22041752_DATA_DATA_WD-1:0] io_sram_wdata ;
+wire [`ysyx_22041752_DATA_DATA_WD-1:0] io_sram_rdata ;
+wire                                   io_sram_valid ;
+
+wire                                   sram_req   ;
+wire [2:0]                             sram_size  ;
+wire                                   sram_ready ;
+wire [`ysyx_22041752_DATA_WEN_WD -1:0] sram_wen   ;
+wire [`ysyx_22041752_DATA_ADDR_WD-1:0] sram_addr  ;
+wire [`ysyx_22041752_DATA_DATA_WD-1:0] sram_wdata ;
+wire [`ysyx_22041752_DATA_DATA_WD-1:0] sram_rdata ;
+wire                                   sram_valid ;
+
+ysyx_22041752_memspace U_MEMSPACE_0(
+    .clk                            ( clk                         ),
+    .reset                          ( reset                       ),
+    .es_data_en_i                   ( es_data_en                  ),
+    .es_data_wen_i                  ( es_data_wen                 ),
+    .es_data_addr_i                 ( es_data_addr                ),
+    .es_data_wdata_i                ( es_data_wdata               ),
+    .es_write_hit_o                 ( es_write_hit                ),
+    .ms_data_rdata_o                ( ms_data_rdata               ),
+    .ms_miss_o                      ( ms_miss                     ),
+    .clint_en_o                     ( clint_en                    ),
+    .clint_wen_o                    ( clint_wen                   ),
+    .clint_data_addr_o              ( clint_addr                  ),
+    .clint_data_wdata_o             ( clint_wdata                 ),
+    .clint_data_rdata_i             ( clint_rdata                 ),
+    .dcache_en_o                    ( dcache_data_en              ),
+    .dcache_wen_o                   ( dcache_data_wen             ),
+    .dcache_data_addr_o             ( dcache_data_addr            ),
+    .dcache_data_wdata_o            ( dcache_data_wdata           ),
+    .dcache_miss_i                  ( dcache_miss                 ),
+    .dcache_write_hit_i             ( dcache_write_hit            ),
+    .dcache_data_rdata_i            ( dcache_data_rdata           ),
+    .io_miss_i                      ( io_miss                     ),
+    .io_data_rdata_i                ( io_data_rdata               ),
+    .io_en_o                        ( io_data_en                  ),
+    .io_wen_o                       ( io_data_wen                 ),
+    .io_data_addr_o                 ( io_data_addr                ),
+    .io_data_wdata_o                ( io_data_wdata               )
+`ifdef DPI_C
+    ,
+    .debug_dcache_en                ( debug_dcache_en             )
+`endif
+
+);
+
+ysyx_22041752_clint U_CLINT_0(
+    .clk                            ( clk                           ),
+    .reset                          ( reset                         ),
+    .en                             ( clint_en                      ),
+    .wen                            ( clint_wen                     ),
+    .addr                           ( clint_addr                    ),
+    .wdata                          ( clint_wdata                   ),
+    .rdata                          ( clint_rdata                   ),
+    .int_t_o                        ( int_t                         )
+);
+
+ysyx_22041752_DCACHE U_DCACHE_0(
+    .clk                            ( clk                           ),
+    .reset                          ( reset                         ),
+    .fence_i                        ( fence_i                       ),
+    .fence_over                     ( fence_over                    ),
+    .data_en                        ( dcache_data_en                ),
+    .data_wen                       ( dcache_data_wen               ),
+    .data_addr                      ( dcache_data_addr              ),
+    .data_wdata                     ( dcache_data_wdata             ),
+    .data_rdata                     ( dcache_data_rdata             ),
+    .cache_miss                     ( dcache_miss                   ),
+    .write_hit                      ( dcache_write_hit              ),
+    .sram_req                       ( dcache_sram_req               ),
+    .sram_ready                     ( dcache_sram_ready             ),
+    .sram_wen                       ( dcache_sram_wen               ),
+    .sram_addr                      ( dcache_sram_addr              ),
+    .sram_wdata                     ( dcache_sram_wdata             ),
+    .sram_rdata                     ( dcache_sram_rdata             ),
+    .sram_valid                     ( dcache_sram_valid             ),
+    .io_sram4_addr                  ( io_sram4_addr                 ), 
+    .io_sram4_cen                   ( io_sram4_cen                  ),
+    .io_sram4_wen                   ( io_sram4_wen                  ),
+    .io_sram4_wmask                 ( io_sram4_wmask                ),
+    .io_sram4_wdata                 ( io_sram4_wdata                ),
+    .io_sram4_rdata                 ( io_sram4_rdata                ),
+    .io_sram5_addr                  ( io_sram5_addr                 ),
+    .io_sram5_cen                   ( io_sram5_cen                  ),
+    .io_sram5_wen                   ( io_sram5_wen                  ),
+    .io_sram5_wmask                 ( io_sram5_wmask                ),
+    .io_sram5_wdata                 ( io_sram5_wdata                ),
+    .io_sram5_rdata                 ( io_sram5_rdata                ),
+    .io_sram6_addr                  ( io_sram6_addr                 ),
+    .io_sram6_cen                   ( io_sram6_cen                  ),
+    .io_sram6_wen                   ( io_sram6_wen                  ),
+    .io_sram6_wmask                 ( io_sram6_wmask                ),
+    .io_sram6_wdata                 ( io_sram6_wdata                ),
+    .io_sram6_rdata                 ( io_sram6_rdata                ),
+    .io_sram7_addr                  ( io_sram7_addr                 ),
+    .io_sram7_cen                   ( io_sram7_cen                  ),
+    .io_sram7_wen                   ( io_sram7_wen                  ),
+    .io_sram7_wmask                 ( io_sram7_wmask                ),
+    .io_sram7_wdata                 ( io_sram7_wdata                ),
+    .io_sram7_rdata                 ( io_sram7_rdata                )
+);
+
+ysyx_22041752_io U_IO_0(
+    .clk                            ( clk                           ),
+    .reset                          ( reset                         ),
+    .io_en                          ( io_data_en                    ),
+    .io_wen                         ( io_data_wen                   ),
+    .io_data_addr                   ( io_data_addr                  ),
+    .io_data_wdata                  ( io_data_wdata                 ),
+    .io_data_rdata                  ( io_data_rdata                 ),
+    .io_miss                        ( io_miss                       ),
+    .sram_req                       ( io_sram_req                   ),
+    .size                           ( io_sram_size                  ),
+    .sram_ready                     ( io_sram_ready                 ),
+    .sram_wen                       ( io_sram_wen                   ),
+    .sram_addr                      ( io_sram_addr                  ),
+    .sram_wdata                     ( io_sram_wdata                 ),
+    .sram_rdata                     ( io_sram_rdata                 ),
+    .sram_valid                     ( io_sram_valid                 )
+);
+
+ysyx_22041752_mmu U_MMU_0(
+    .clk                            ( clk                         ),
+    .reset                          ( reset                       ),
+    .dcache_sram_req_i              ( dcache_sram_req             ),
+    .dcache_sram_ready_o            ( dcache_sram_ready           ),
+    .dcache_sram_wen_i              ( dcache_sram_wen             ),
+    .dcache_sram_addr_i             ( dcache_sram_addr            ),
+    .dcache_sram_wdata_i            ( dcache_sram_wdata           ),
+    .dcache_sram_rdata_o            ( dcache_sram_rdata           ),
+    .dcache_sram_valid_o            ( dcache_sram_valid           ),
+    .io_sram_req_i                  ( io_sram_req                 ),
+    .io_sram_size_i                 ( io_sram_size                ),
+    .io_sram_ready_o                ( io_sram_ready               ),
+    .io_sram_wen_i                  ( io_sram_wen                 ),
+    .io_sram_addr_i                 ( io_sram_addr                ),
+    .io_sram_wdata_i                ( io_sram_wdata               ),
+    .io_sram_rdata_o                ( io_sram_rdata               ),
+    .io_sram_valid_o                ( io_sram_valid               ),
+    .sram_req_o                     ( sram_req                    ),
+    .sram_size_o                    ( sram_size                   ),
+    .sram_ready_i                   ( sram_ready                  ),
+    .sram_wen_o                     ( sram_wen                    ),
+    .sram_addr_o                    ( sram_addr                   ),
+    .sram_wdata_o                   ( sram_wdata                  ),
+    .sram_rdata_i                   ( sram_rdata                  ),
+    .sram_valid_i                   ( sram_valid                  )
+);
+
+ysyx_22041752_axiarbiter U_AXIARBITER_0(
+    .clk                            ( clk                           ),
+    .reset                          ( reset                         ),
+    .inst_en                        ( icache_req                    ),
+    .inst_ready                     ( icache_ready                  ),
+    .inst_addr                      ( icache_req_addr               ),
+    .inst_rdata                     ( icache_rdata                  ),
+    .inst_valid                     ( icache_valid                  ),
+    .data_en                        ( sram_req                      ),
+    .data_size                      ( sram_size                     ),
+    .data_ready                     ( sram_ready                    ),
+    .data_wen                       ( sram_wen                      ),
+    .data_addr                      ( sram_addr                     ),
+    .data_wdata                     ( sram_wdata                    ),
+    .data_rdata                     ( sram_rdata                    ),
+    .data_valid                     ( sram_valid                    ),
+    .arid                           ( io_master_arid                ),
+    .araddr                         ( io_master_araddr              ),
+    .arlen                          ( io_master_arlen               ),
+    .arsize                         ( io_master_arsize              ),
+    .arburst                        ( io_master_arburst             ),
+    .arvalid                        ( io_master_arvalid             ),
+    .arready                        ( io_master_arready             ),
+    .rid                            ( io_master_rid                 ),
+    .rdata                          ( io_master_rdata               ),
+    .rresp                          ( io_master_rresp               ),
+    .rlast                          ( io_master_rlast               ),
+    .rvalid                         ( io_master_rvalid              ),
+    .rready                         ( io_master_rready              ),
+    .awid                           ( io_master_awid                ),
+    .awaddr                         ( io_master_awaddr              ),
+    .awlen                          ( io_master_awlen               ),
+    .awsize                         ( io_master_awsize              ),
+    .awburst                        ( io_master_awburst             ),
+    .awvalid                        ( io_master_awvalid             ),
+    .awready                        ( io_master_awready             ),
+    .wdata                          ( io_master_wdata               ),
+    .wstrb                          ( io_master_wstrb               ),
+    .wlast                          ( io_master_wlast               ),
+    .wvalid                         ( io_master_wvalid              ),
+    .wready                         ( io_master_wready              ),
+    .bid                            ( io_master_bid                 ),
+    .bresp                          ( io_master_bresp               ),
+    .bvalid                         ( io_master_bvalid              ),
+    .bready                         ( io_master_bready              )
+);
+
+
+`ifdef DPI_C
+dpi_c u_dpi_c(
+    .clk                    (  clk                       ),
+    .stop                   (  stop                      ),
+    .ws_valid               (  debug_ws_valid            ),
+    .dpi_regs               (  dpi_regs                  ),
+    .dpi_csrs               (  dpi_csrs                  ),
+    .debug_wb_pc            ( {32'd0,debug_wb_pc}        ),
+    .debug_es_pc            ( {32'd0,debug_es_pc}        ),
+    .debug_es_bjpre_error   ( debug_es_bjpre_error       ),
+    .debug_es_bj_inst       ( debug_es_bj_inst           ),
+    .debug_es_exp           ( debug_es_exp               ),
+    .debug_es_mret          ( debug_es_mret              ),
+    .debug_es_data_ren      ( debug_es_data_ren          ),
+    .debug_es_data_wen      ( debug_es_data_wen          ),
+    .debug_ms_rdata_valid   ( debug_ms_rdata_valid       ),
+    .debug_ms_data_rdata    ( debug_ms_data_rdata        ),
+    .debug_es_data_addr     ( {32'b0,debug_es_data_addr} ),
+    .debug_es_data_wdata    ( debug_es_data_wdata        ),
+    .debug_ws_inst          ( debug_ws_inst              ),
+    .debug_ws_out_of_mem    ( debug_ws_out_of_mem        ),
+    .debug_es_inst          ( debug_es_inst              ),
+    .debug_icache_miss      ( debug_icache_miss          ),
+    .debug_dcache_miss      ( debug_dcache_miss          ),
+    .debug_dcache_en        ( debug_dcache_en            )
+);
+`endif
+
+endmodule
